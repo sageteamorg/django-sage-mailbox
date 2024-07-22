@@ -1,30 +1,28 @@
 from typing import Any
 
 from django.conf import settings
-from django.contrib import admin
-from django.db import transaction
-from django.contrib import messages
-from django.urls import path, reverse
-from django.http.response import HttpResponse
+from django.contrib import admin, messages
 from django.contrib.admin.models import LogEntry
 from django.core.exceptions import ValidationError
-from django.utils.translation import gettext_lazy as _
+from django.db import transaction
 from django.http import HttpRequest, HttpResponseRedirect
-
-from sage_imap.services import IMAPClient, IMAPFolderService
+from django.http.response import HttpResponse
+from django.urls import path, reverse
+from django.utils.translation import gettext_lazy as _
 from sage_imap.exceptions import (
+    IMAPFolderExistsError,
     IMAPFolderNotFoundError,
     IMAPFolderOperationError,
-    IMAPFolderExistsError,
-    IMAPFolderOperationError,
 )
+from sage_imap.services import IMAPClient, IMAPFolderService
 
-from sage_mailbox.models.mailbox import Mailbox, StandardMailboxNames
 from sage_mailbox.admin.actions import delete_selected
+from sage_mailbox.models.mailbox import Mailbox, StandardMailboxNames
 
 imap_host = settings.IMAP_SERVER_DOMAIN
 imap_username = settings.IMAP_SERVER_USER
 imap_password = settings.IMAP_SERVER_PASSWORD
+
 
 @admin.register(Mailbox)
 class MailboxAdmin(admin.ModelAdmin):
@@ -40,9 +38,7 @@ class MailboxAdmin(admin.ModelAdmin):
         (_("Change Log"), {"fields": ("created_at", "modified_at")}),
     )
     readonly_fields = ("folder_type", "created_at", "modified_at")
-    actions = [
-        delete_selected
-    ]
+    actions = [delete_selected]
 
     def get_readonly_fields(self, request, obj=None):
         if obj:  # Editing an existing object
@@ -63,18 +59,24 @@ class MailboxAdmin(admin.ModelAdmin):
                             try:
                                 folder_service.rename_folder(old_name, new_name)
                             except IMAPFolderNotFoundError:
-                                raise ValidationError(_("The folder to be renamed does not exist."))
+                                raise ValidationError(
+                                    _("The folder to be renamed does not exist.")
+                                )
                             except IMAPFolderOperationError as e:
                                 raise ValidationError(str(e))
                     else:
                         try:
                             folder_service.create_folder(new_name)
                         except IMAPFolderExistsError:
-                            raise ValidationError(_("A folder with this name already exists."))
+                            raise ValidationError(
+                                _("A folder with this name already exists.")
+                            )
                         except IMAPFolderOperationError as e:
                             raise ValidationError(str(e))
                     super().save_model(request, obj, form, change)
-                messages.success(request, f'The Mailbox "{new_name}" was added successfully.')
+                messages.success(
+                    request, f'The Mailbox "{new_name}" was added successfully.'
+                )
         except ValidationError as e:
             messages.error(request, f"Error: {e.message}")
         except Exception as e:
@@ -83,7 +85,11 @@ class MailboxAdmin(admin.ModelAdmin):
     def get_urls(self):
         urls = super().get_urls()
         custom_urls = [
-            path('sync-folders/', self.admin_site.admin_view(self.sync_folders), name='sync_folders')
+            path(
+                "sync-folders/",
+                self.admin_site.admin_view(self.sync_folders),
+                name="sync_folders",
+            )
         ]
         return custom_urls + urls
 
@@ -97,12 +103,18 @@ class MailboxAdmin(admin.ModelAdmin):
                     except IMAPFolderNotFoundError:
                         # If folder is not found on IMAP, delete only in Django
                         super().delete_model(request, obj)
-                        messages.warning(request, f'The Mailbox "{obj.name}" was deleted from admin, but it did not exist on the IMAP server.')
+                        messages.warning(
+                            request,
+                            f'The Mailbox "{obj.name}" was deleted from admin, but it did not exist on the IMAP server.',
+                        )
                     except IMAPFolderOperationError as e:
                         raise ValidationError(str(e))
                     else:
                         super().delete_model(request, obj)
-                        messages.success(request, f'The Mailbox "{obj.name}" was deleted successfully from both admin and IMAP server.')
+                        messages.success(
+                            request,
+                            f'The Mailbox "{obj.name}" was deleted successfully from both admin and IMAP server.',
+                        )
         except ValidationError as e:
             messages.error(request, f"Error: {e.message}")
         except Exception as e:
@@ -119,13 +131,19 @@ class MailboxAdmin(admin.ModelAdmin):
                         except IMAPFolderNotFoundError:
                             # If folder is not found on IMAP, delete only in Django
                             super().delete_model(request, obj)
-                            messages.warning(request, f'The mailbox "{obj.name}" was deleted from admin, but it did not exist on the IMAP server.')
+                            messages.warning(
+                                request,
+                                f'The mailbox "{obj.name}" was deleted from admin, but it did not exist on the IMAP server.',
+                            )
                         except IMAPFolderOperationError as e:
                             raise ValidationError(str(e))
                         else:
                             super().delete_model(request, obj)
                     super().delete_queryset(request, queryset)
-                messages.success(request, "The selected Mailboxes were deleted successfully from both admin and IMAP server.")
+                messages.success(
+                    request,
+                    "The selected Mailboxes were deleted successfully from both admin and IMAP server.",
+                )
         except ValidationError as e:
             messages.error(request, f"Error: {e.message}")
         except Exception as e:
@@ -149,7 +167,9 @@ class MailboxAdmin(admin.ModelAdmin):
         else:
             return HttpResponseRedirect(self.get_success_url(request, obj))
 
-    def response_delete(self, request: HttpRequest, obj_display: str, obj_id: int) -> HttpResponse:
+    def response_delete(
+        self, request: HttpRequest, obj_display: str, obj_id: int
+    ) -> HttpResponse:
         post_url = reverse(
             "admin:%s_%s_changelist" % (self.opts.app_label, self.opts.model_name),
             current_app=self.admin_site.name,
@@ -157,7 +177,7 @@ class MailboxAdmin(admin.ModelAdmin):
         return HttpResponseRedirect(post_url)
 
     def get_success_url(self, request, obj):
-        return request.META.get('HTTP_REFERER', '/admin/')
+        return request.META.get("HTTP_REFERER", "/admin/")
 
     def sync_folders(self, request):
         try:
@@ -165,11 +185,15 @@ class MailboxAdmin(admin.ModelAdmin):
                 folder_service = IMAPFolderService(client)
                 folders = folder_service.list_folders()
                 for folder_name in folders:
-                    Mailbox.objects.update_or_create(name=folder_name, defaults={"slug": folder_name.lower()})
+                    Mailbox.objects.update_or_create(
+                        name=folder_name, defaults={"slug": folder_name.lower()}
+                    )
                 messages.success(request, "Mailboxes synchronized successfully.")
         except Exception as e:
             messages.error(request, f"Unexpected error: {str(e)}")
-        return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/admin/'))
+        return HttpResponseRedirect(request.META.get("HTTP_REFERER", "/admin/"))
 
-    def log_deletion(self, request: HttpRequest, object: Any, object_repr: str) -> LogEntry:
+    def log_deletion(
+        self, request: HttpRequest, object: Any, object_repr: str
+    ) -> LogEntry:
         return super().log_deletion(request, object, object_repr)

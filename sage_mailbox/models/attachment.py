@@ -15,7 +15,7 @@ class Attachment(TimestampMixin):
         on_delete=models.CASCADE,
         verbose_name=_("Email Message"),
         help_text=_("The email message to which this attachment belongs."),
-        db_comment="The email message to which this attachment belongs."
+        db_comment="The email message to which this attachment belongs.",
     )
     attachment_id = models.CharField(max_length=255, blank=True, null=True)
     file = models.FileField(
@@ -23,19 +23,19 @@ class Attachment(TimestampMixin):
         storage=FileSystemStorage("sage_mailbox/attachments/"),
         verbose_name=_("File"),
         help_text=_("The file attached to the email."),
-        db_comment="The file attached to the email."
+        db_comment="The file attached to the email.",
     )
     filename = models.CharField(
         max_length=255,
         verbose_name=_("Filename"),
         help_text=_("The original filename of the attachment."),
-        db_comment="The original filename of the attachment."
+        db_comment="The original filename of the attachment.",
     )
     content_type = models.CharField(
         max_length=255,
         verbose_name=_("Content Type"),
         help_text=_("The MIME type of the attachment."),
-        db_comment="The MIME type of the attachment."
+        db_comment="The MIME type of the attachment.",
     )
     payload = models.BinaryField()
     content_id = models.CharField(max_length=255, blank=True, null=True)
@@ -56,4 +56,4 @@ class Attachment(TimestampMixin):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return self.filename or 'Attachment'
+        return self.filename or "Attachment"

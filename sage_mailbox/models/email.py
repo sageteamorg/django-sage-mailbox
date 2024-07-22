@@ -2,13 +2,11 @@ import re
 
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-
 from django_jsonform.models.fields import JSONField
+from sage_imap.models.email import EmailMessage as EmailMessageDC
 
 from sage_mailbox.models.mixins import TimestampMixin
 from sage_mailbox.repository import EmailMessageManager
-
-from sage_imap.models.email import EmailMessage as EmailMessageDC
 
 
 class EmailMessage(TimestampMixin):
@@ -20,14 +18,14 @@ class EmailMessage(TimestampMixin):
         "additionalProperties": {
             "type": "string",
             "readonly": True,
-        }
+        },
     }
     uid = models.IntegerField(
         verbose_name=_("IMAP UID"),
         help_text=_("IMAP Server Unique Identifier."),
         db_comment="IMAP Server Unique Identifier.",
         blank=True,
-        null=True
+        null=True,
     )
     message_id = models.CharField(
         max_length=255,
@@ -36,72 +34,64 @@ class EmailMessage(TimestampMixin):
         blank=True,
         verbose_name=_("Message-ID Header"),
         help_text=_("Message ID of the email"),
-        db_comment="Message ID of the email"
+        db_comment="Message ID of the email",
     )
     subject = models.CharField(
         max_length=255,
         verbose_name=_("Subject"),
         help_text=_("The subject of the email."),
-        db_comment="The subject of the email."
+        db_comment="The subject of the email.",
     )
     from_address = models.EmailField(
         verbose_name=_("From Address"),
         help_text=_("The sender's email address."),
-        db_comment="The sender's email address."
+        db_comment="The sender's email address.",
     )
     to_address = models.TextField(
         verbose_name=_("To Address"),
         help_text=_("List of recipient email addresses."),
-        db_comment="List of recipient email addresses, separated by commas."
+        db_comment="List of recipient email addresses, separated by commas.",
     )
     cc_address = models.TextField(
         blank=True,
         verbose_name=_("CC Address"),
         help_text=_("List of CC recipient email addresses."),
-        db_comment="List of CC recipient email addresses, separated by commas."
+        db_comment="List of CC recipient email addresses, separated by commas.",
     )
     bcc_address = models.TextField(
         blank=True,
         verbose_name=_("BCC Address"),
         help_text=_("List of BCC recipient email addresses."),
-        db_comment="List of BCC recipient email addresses, separated by commas."
+        db_comment="List of BCC recipient email addresses, separated by commas.",
     )
     date = models.DateTimeField(
         null=True,
         blank=True,
         verbose_name=_("Date"),
         help_text=_("The date the email was sent."),
-        db_comment="The date the email was sent, in ISO format."
+        db_comment="The date the email was sent, in ISO format.",
     )
     raw = models.BinaryField(blank=True, null=True)
     plain_body = models.TextField(
         verbose_name=_("Plain Body"),
         help_text=_("The plain text body content of the email."),
-        db_comment="The plain text body content of the email."
+        db_comment="The plain text body content of the email.",
     )
     html_body = models.TextField(
         verbose_name=_("HTML Body"),
         help_text=_("The HTML body content of the email."),
-        db_comment="The HTML body content of the email."
+        db_comment="The HTML body content of the email.",
     )
-    flags = models.ManyToManyField(
-        "Flag",
-        related_name='email_flags',
-        blank=True
-    )
-    headers = JSONField(
-        schema=HEADER_JSON_SCHEMA,
-        null=True,
-        blank=True
-    )
-    
+    flags = models.ManyToManyField("Flag", related_name="email_flags", blank=True)
+    headers = JSONField(schema=HEADER_JSON_SCHEMA, null=True, blank=True)
+
     mailbox = models.ForeignKey(
-        'Mailbox',
+        "Mailbox",
         related_name="emails",
         on_delete=models.CASCADE,
         verbose_name=_("Mailbox"),
         help_text=_("The mailbox to which this email belongs."),
-        db_comment="The mailbox to which this email belongs."
+        db_comment="The mailbox to which this email belongs.",
     )
     is_read = models.BooleanField(
         default=False,
@@ -142,14 +132,16 @@ class EmailMessage(TimestampMixin):
 
     def save(self, *args, **kwargs):
         from sage_mailbox.models import Mailbox
+
         if not self.mailbox_id:
-            sent_mailbox, created = Mailbox.objects.get_or_create(name='Sent')
+            sent_mailbox, created = Mailbox.objects.get_or_create(name="Sent")
             self.mailbox = sent_mailbox
         super().save(*args, **kwargs)
 
     @classmethod
     def from_dataclass(cls, email_dc: EmailMessageDC):
-        from sage_mailbox.models import Flag, Attachment
+        from sage_mailbox.models import Attachment, Flag
+
         """Convert a dataclass instance to a Django model instance."""
         email = cls(
             uid=email_dc.uid,
@@ -167,10 +159,12 @@ class EmailMessage(TimestampMixin):
         )
         email.save()
         # Process and clean up flags
-        cleaned_flags = [re.sub(r'^\\+', '', flag.value) for flag in email_dc.flags]
+        cleaned_flags = [re.sub(r"^\\+", "", flag.value) for flag in email_dc.flags]
 
         # Get existing flags from the database
-        existing_flags = {flag.name: flag for flag in Flag.objects.filter(name__in=cleaned_flags)}
+        existing_flags = {
+            flag.name: flag for flag in Flag.objects.filter(name__in=cleaned_flags)
+        }
 
         # Find flags that need to be created
         new_flag_values = set(cleaned_flags) - set(existing_flags.keys())
@@ -203,7 +197,8 @@ class EmailMessage(TimestampMixin):
 
     def to_dataclass(self):
         """Convert a Django model instance to a dataclass instance."""
-        from sage_imap.models.email import EmailMessage as EmailMessageDC, Attachment
+        from sage_imap.models.email import Attachment
+        from sage_imap.models.email import EmailMessage as EmailMessageDC
 
         return EmailMessageDC(
             uid=self.uid,
@@ -225,7 +220,8 @@ class EmailMessage(TimestampMixin):
                     payload=attachment.payload,
                     content_id=attachment.content_id,
                     content_transfer_encoding=attachment.content_transfer_encoding,
-                ) for attachment in self.attachments.all()
+                )
+                for attachment in self.attachments.all()
             ],
             flags=list(self.flags.all()),
             headers=self.headers,
@@ -234,14 +230,14 @@ class EmailMessage(TimestampMixin):
 
     @classmethod
     def sanitize_message_id(cls, message_id):
-        pattern = r'<([^>]*)>'
+        pattern = r"<([^>]*)>"
         match = re.search(pattern, message_id)
-        
+
         if match:
             sanitized_message_id = "<" + match.group(1) + ">"
         else:
             sanitized_message_id = None
-        
+
         return sanitized_message_id
 
     def has_attachments(self):
@@ -255,7 +251,7 @@ class EmailMessage(TimestampMixin):
             "from": self.from_address,
             "to": self.to_address,
             "date": self.date,
-            "has_attachments": self.has_attachments()
+            "has_attachments": self.has_attachments(),
         }
 
     def __repr__(self):
@@ -282,6 +278,7 @@ class Sent(EmailMessage):
         verbose_name = _("Sent")
         verbose_name_plural = _("Sent")
 
+
 class Trash(EmailMessage):
     objects = EmailMessageManager()
 
@@ -290,6 +287,7 @@ class Trash(EmailMessage):
         verbose_name = _("Trash")
         verbose_name_plural = _("Trash")
 
+
 class Junk(EmailMessage):
     objects = EmailMessageManager()
 
@@ -297,6 +295,7 @@ class Junk(EmailMessage):
         proxy = True
         verbose_name = _("Junk")
         verbose_name_plural = _("Junk")
+
 
 class Archive(EmailMessage):
     objects = EmailMessageManager()

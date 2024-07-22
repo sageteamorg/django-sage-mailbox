@@ -19,13 +19,14 @@ def send_email_after_save(sender, instance, created, **kwargs):
     if created:
         transaction.on_commit(lambda: send_email(instance))
 
+
 def send_email(email_message):
     # Create the email message
     subject = email_message.subject
     from_email = email_message.from_address
-    to = email_message.to_address.split(',')
-    cc = email_message.cc_address.split(',') if email_message.cc_address else []
-    bcc = email_message.bcc_address.split(',') if email_message.bcc_address else []
+    to = email_message.to_address.split(",")
+    cc = email_message.cc_address.split(",") if email_message.cc_address else []
+    bcc = email_message.bcc_address.split(",") if email_message.bcc_address else []
 
     msg = EmailMultiAlternatives(
         subject=subject,
@@ -37,7 +38,7 @@ def send_email(email_message):
     )
 
     # Check if the body contains HTML content
-    if '<html>' in email_message.body:
+    if "<html>" in email_message.body:
         msg.attach_alternative(email_message.body, "text/html")
 
     # Attach any files
@@ -45,17 +46,17 @@ def send_email(email_message):
         file_content = attachment.file.read()
         mime_type, _ = mimetypes.guess_type(attachment.filename)
         if not mime_type:
-            mime_type = 'application/octet-stream'  # Default to binary stream if MIME type can't be guessed
+            mime_type = "application/octet-stream"  # Default to binary stream if MIME type can't be guessed
         msg.attach(attachment.filename, file_content, mime_type)
 
     # Additional headers
     msg.extra_headers = {
-        'Message-ID': email_message.message_id,
-        'X-MS-Has-Attach': 'yes' if email_message.has_attachments() else 'no',
-        'X-Priority': '3',
-        'X-Auto-Response-Suppress': 'All',
-        'MIME-Version': '1.0',
-        'Content-Type': 'multipart/mixed',
+        "Message-ID": email_message.message_id,
+        "X-MS-Has-Attach": "yes" if email_message.has_attachments() else "no",
+        "X-Priority": "3",
+        "X-Auto-Response-Suppress": "All",
+        "MIME-Version": "1.0",
+        "Content-Type": "multipart/mixed",
     }
 
     # Send the email
@@ -70,6 +71,7 @@ def send_email(email_message):
     with IMAPClient(host, username, password) as client:
         with IMAPMailboxService(client) as mailbox:
             mailbox.save_sent_email(raw_email, DefaultMailboxes.SENT)
+
 
 # Connect the signal to all proxies
 proxy_models = [EmailMessage, Inbox, Draft, Sent, Trash, Junk, Archive]
