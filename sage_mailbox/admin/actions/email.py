@@ -25,27 +25,31 @@ password = settings.IMAP_SERVER_PASSWORD
 @transaction.atomic
 def move_to_trash(modeladmin, request, queryset):
     start_time = time.time()
-    email_messages_to_update = []
+    emails_to_delete = []
     try:
-        with IMAPClient(host, username, password) as client:
-            mailbox = IMAPMailboxUIDService(client)
-            trash_mailbox = Mailbox.objects.get(
-                folder_type=StandardMailboxNames.TRASH
-            )
+        with IMAPClient(host, username, password) as imap_client:
+            imap_mailbox_service = IMAPMailboxUIDService(imap_client)
+            trash_mailbox = Mailbox.objects.get(folder_type=StandardMailboxNames.TRASH)
 
-            for email_message in queryset:
-                mailbox.select(email_message.mailbox.name)
-                mailbox.uid_trash(MessageSet(str(email_message.uid)), trash_mailbox.name)
-                email_message.mailbox = trash_mailbox
-                email_messages_to_update.append(email_message)
-                logger.debug(f"Moved email with UID {email_message.uid} to trash.")
+            for email in queryset:
+                imap_mailbox_service.select(email.mailbox.name)
+                imap_mailbox_service.uid_trash(MessageSet(str(email.uid)), trash_mailbox.name)
+                emails_to_delete.append(email)
+                logger.debug(f"Moved email with UID {email.uid} to trash.")
 
-            queryset.model.objects.bulk_update(email_messages_to_update, ['mailbox'])
-            logger.debug("Moved email messages to trash in the database.")
+            queryset.model.objects.filter(id__in=[email.id for email in emails_to_delete]).delete()
+            logger.debug("Deleted moved email messages from the database.")
 
         end_time = time.time()
         runtime = end_time - start_time
-        messages.success(request, _("Successfully moved {} emails to trash in {:.2f} seconds.").format(len(email_messages_to_update), runtime))
+        messages.success(
+            request,
+            _("Successfully moved {} emails to trash and deleted them from the database in {:.2f} seconds."
+            ).format(
+                len(emails_to_delete),
+                runtime
+            )
+        )
 
     except Exception as e:
         end_time = time.time()
