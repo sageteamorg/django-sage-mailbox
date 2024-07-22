@@ -540,6 +540,55 @@ argon2 = ["argon2-cffi (>=19.1.0)"]
 bcrypt = ["bcrypt"]
 
 [[package]]
+name = "django-anymail"
+version = "11.0.1"
+description = "Django email backends and webhooks for Amazon SES, Brevo,  MailerSend, Mailgun, Mailjet, Mandrill, Postal, Postmark, Resend,  SendGrid, SparkPost and Unisender Go  (EmailBackend, transactional email tracking and inbound email signals)"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "django_anymail-11.0.1-py3-none-any.whl", hash = "sha256:d8ebb641d304be873a5dcc3d5a6aa3ca1beb3a35a207d353cf24fd3c10ae57f2"},
+    {file = "django_anymail-11.0.1.tar.gz", hash = "sha256:eaa8a2166d173552607bb837ce3caaee827d1c68031e1245a5516e3b33baee71"},
+]
+
+[package.dependencies]
+django = ">=2.0"
+requests = ">=2.4.3"
+urllib3 = ">=1.25.0"
+
+[package.extras]
+amazon-ses = ["boto3 (>=1.10.17)"]
+postal = ["cryptography"]
+resend = ["svix"]
+
+[[package]]
+name = "django-jsonform"
+version = "2.22.0"
+description = "A user-friendly JSON editing form for Django admin."
+optional = false
+python-versions = ">=3.4"
+files = [
+    {file = "django-jsonform-2.22.0.tar.gz", hash = "sha256:0c9d50fb371938e7262a7fef7c5a60835dd288f872f87b952d5e2ea84c825221"},
+    {file = "django_jsonform-2.22.0-py3-none-any.whl", hash = "sha256:c4dd1ba2b0152bd3164aacf326a83c35355c70d12de81908b5ced5f94c8263d6"},
+]
+
+[package.dependencies]
+django = ">=2.0"
+
+[[package]]
+name = "django-mailbox"
+version = "4.10.1"
+description = "Import mail from POP3, IMAP, local mailboxes or directly from Postfix or Exim4 into your Django application automatically."
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "django-mailbox-4.10.1.tar.gz", hash = "sha256:9060a4ddc81d16aa699e266649c12eaf4f29671b5266352e2fad3043a6832b52"},
+]
+
+[package.extras]
+gmail-oauth2 = ["python-social-auth"]
+office365-oauth2 = ["O365"]
+
+[[package]]
 name = "django-stubs"
 version = "5.0.2"
 description = "Mypy stubs for Django"
@@ -1271,6 +1320,20 @@ pytest = ">=4.6"
 testing = ["fields", "hunter", "process-tests", "pytest-xdist", "virtualenv"]
 
 [[package]]
+name = "python-dateutil"
+version = "2.9.0.post0"
+description = "Extensions to the standard Python datetime module"
+optional = false
+python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,>=2.7"
+files = [
+    {file = "python-dateutil-2.9.0.post0.tar.gz", hash = "sha256:37dd54208da7e1cd875388217d5e00ebd4179249f90fb72437e91a35459a0ad3"},
+    {file = "python_dateutil-2.9.0.post0-py2.py3-none-any.whl", hash = "sha256:a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427"},
+]
+
+[package.dependencies]
+six = ">=1.5"
+
+[[package]]
 name = "python-sage-imap"
 version = "0.1.3"
 description = "Managing IMAP connections and performing various email operations."
@@ -1481,6 +1544,17 @@ files = [
 [package.extras]
 doc = ["furo", "jaraco.packaging (>=9.3)", "jaraco.tidelift (>=1.4)", "pygments-github-lexers (==0.0.5)", "pyproject-hooks (!=1.1)", "rst.linker (>=1.9)", "sphinx (>=3.5)", "sphinx-favicon", "sphinx-inline-tabs", "sphinx-lint", "sphinx-notfound-page (>=1,<2)", "sphinx-reredirects", "sphinxcontrib-towncrier"]
 test = ["build[virtualenv] (>=1.0.3)", "filelock (>=3.4.0)", "importlib-metadata", "ini2toml[lite] (>=0.14)", "jaraco.develop (>=7.21)", "jaraco.envs (>=2.2)", "jaraco.path (>=3.2.0)", "jaraco.test", "mypy (==1.10.0)", "packaging (>=23.2)", "pip (>=19.1)", "pyproject-hooks (!=1.1)", "pytest (>=6,!=8.1.*)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=2.2)", "pytest-home (>=0.5)", "pytest-mypy", "pytest-perf", "pytest-ruff (>=0.3.2)", "pytest-subprocess", "pytest-timeout", "pytest-xdist (>=3)", "tomli", "tomli-w (>=1.0.0)", "virtualenv (>=13.0.0)", "wheel"]
+
+[[package]]
+name = "six"
+version = "1.16.0"
+description = "Python 2 and 3 compatibility utilities"
+optional = false
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*"
+files = [
+    {file = "six-1.16.0-py2.py3-none-any.whl", hash = "sha256:8abb2f1d86890a2dfb989f9a77cfcfd3e47c2a354b01111771326f8aa26e0254"},
+    {file = "six-1.16.0.tar.gz", hash = "sha256:1e61c37477a1626458e36f7b1d82aa5c9b094fa4802892072e49de9c60c4c926"},
+]
 
 [[package]]
 name = "snowballstemmer"
@@ -1876,4 +1950,4 @@ test = ["big-O", "importlib-resources", "jaraco.functools", "jaraco.itertools", 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "aaf20121d0d11484fb2084ea937becf7782b4aee510789591a578cd19d448913"
+content-hash = "e6f0c7a35d13515450760d52a950ab7b8c7f8c7816c52a30a1cbc4af8e09f84f"

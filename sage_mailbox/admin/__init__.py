@@ -1,1 +1,2 @@
-from .mailbox import MailboxAdmin
+from .mailbox import Mailbox
+from .email import EmailMessageAdmin

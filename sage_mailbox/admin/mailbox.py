@@ -1,236 +1,175 @@
 from typing import Any
 
 from django.conf import settings
-from django.contrib import admin, messages
-from django.core.exceptions import PermissionDenied
-from django.db.models.query import QuerySet
-from django.http import HttpRequest, HttpResponseRedirect
+from django.contrib import admin
+from django.db import transaction
+from django.contrib import messages
 from django.urls import path, reverse
+from django.http.response import HttpResponse
+from django.contrib.admin.models import LogEntry
+from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
+from django.http import HttpRequest, HttpResponseRedirect
+
+from sage_imap.services import IMAPClient, IMAPFolderService
 from sage_imap.exceptions import (
-    IMAPFolderExistsError,
     IMAPFolderNotFoundError,
     IMAPFolderOperationError,
-    IMAPUnexpectedError,
+    IMAPFolderExistsError,
+    IMAPFolderOperationError,
 )
-from sage_imap.helpers.mailbox import DefaultMailboxes
-from sage_imap.services import IMAPClient, IMAPFolderService
 
-from sage_mailbox.models import Mailbox
+from sage_mailbox.models.mailbox import Mailbox, StandardMailboxNames
+from sage_mailbox.admin.actions import delete_selected
 
+imap_host = settings.IMAP_SERVER_DOMAIN
+imap_username = settings.IMAP_SERVER_USER
+imap_password = settings.IMAP_SERVER_PASSWORD
 
 @admin.register(Mailbox)
 class MailboxAdmin(admin.ModelAdmin):
     change_list_template = "admin/mailbox/change_list.html"
 
-    list_display = ("name", "slug", "created_at", "modified_at")
+    list_display = ("name", "slug", "folder_type", "created_at", "modified_at")
     search_fields = ("name",)
     ordering = ("name",)
     list_per_page = 25
-    prepopulated_fields = {"slug": ("name",)}
-    list_filter = ("created_at", "modified_at")
+    list_filter = ("folder_type", "created_at", "modified_at")
     fieldsets = (
-        (None, {"fields": ("name", "slug")}),
+        (None, {"fields": ("name", "slug", "folder_type")}),
         (_("Change Log"), {"fields": ("created_at", "modified_at")}),
     )
-    readonly_fields = ("created_at", "modified_at")
+    readonly_fields = ("folder_type", "created_at", "modified_at")
+    actions = [
+        delete_selected
+    ]
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj:  # Editing an existing object
+            if obj.folder_type != StandardMailboxNames.CUSTOM:
+                return self.readonly_fields + ("name",)
+        return self.readonly_fields
 
     def save_model(self, request, obj, form, change):
-        old_name = None
         new_name = form.cleaned_data.get("name")
 
-        if change:
-            old_name = Mailbox.objects.get(pk=obj.pk).name
-
-            if old_name in DefaultMailboxes._value2member_map_:
-                self.message_user(
-                    request,
-                    _("You do not have permission to rename a default mailbox."),
-                    messages.ERROR,
-                )
-                raise PermissionDenied(
-                    "You do not have permission to rename a default mailbox."
-                )
-
-        with IMAPClient(
-            settings.IMAP_SERVER_DOMAIN,
-            settings.IMAP_SERVER_USER,
-            settings.IMAP_SERVER_PASSWORD,
-        ) as client:
-            service = IMAPFolderService(client)
-            try:
-                super().save_model(request, obj, form, change)
-                if change and old_name and old_name != new_name:
-                    service.rename_folder(old_name, new_name)
-                    self.message_user(
-                        request,
-                        _("The folder was successfully renamed on the IMAP server."),
-                        messages.SUCCESS,
-                    )
-                elif not change:
-                    service.create_folder(new_name)
-                    self.message_user(
-                        request,
-                        _("The folder was successfully created on the IMAP server."),
-                        messages.SUCCESS,
-                    )
-            except IMAPFolderExistsError:
-                self.message_user(
-                    request,
-                    _("The folder already exists on the IMAP server."),
-                    messages.WARNING,
-                )
-            except IMAPFolderNotFoundError:
-                self.message_user(
-                    request,
-                    _("The folder to be renamed was not found on the IMAP server."),
-                    messages.ERROR,
-                )
-            except IMAPFolderOperationError as e:
-                self.message_user(
-                    request,
-                    _(
-                        "An error occurred while performing the operation on the IMAP server: %s"
-                    )
-                    % str(e),
-                    messages.ERROR,
-                )
-            except IMAPUnexpectedError as e:
-                self.message_user(
-                    request,
-                    _("An unexpected IMAP error occurred: %s") % str(e),
-                    messages.ERROR,
-                )
-            except Exception as e:
-                self.message_user(
-                    request,
-                    _("An unexpected error occurred: %s") % str(e),
-                    messages.ERROR,
-                )
+        try:
+            with transaction.atomic():
+                with IMAPClient(imap_host, imap_username, imap_password) as client:
+                    folder_service = IMAPFolderService(client)
+                    if change:
+                        old_name = Mailbox.objects.get(pk=obj.pk).name
+                        if old_name != new_name:
+                            try:
+                                folder_service.rename_folder(old_name, new_name)
+                            except IMAPFolderNotFoundError:
+                                raise ValidationError(_("The folder to be renamed does not exist."))
+                            except IMAPFolderOperationError as e:
+                                raise ValidationError(str(e))
+                    else:
+                        try:
+                            folder_service.create_folder(new_name)
+                        except IMAPFolderExistsError:
+                            raise ValidationError(_("A folder with this name already exists."))
+                        except IMAPFolderOperationError as e:
+                            raise ValidationError(str(e))
+                    super().save_model(request, obj, form, change)
+                messages.success(request, f'The Mailbox "{new_name}" was added successfully.')
+        except ValidationError as e:
+            messages.error(request, f"Error: {e.message}")
+        except Exception as e:
+            messages.error(request, f"Unexpected error: {str(e)}")
 
     def get_urls(self):
         urls = super().get_urls()
         custom_urls = [
-            path("sync-mailboxes/", self.sync_mailboxes, name="sync-mailboxes"),
+            path('sync-folders/', self.admin_site.admin_view(self.sync_folders), name='sync_folders')
         ]
         return custom_urls + urls
 
-    def sync_mailboxes(self, request):
-        with IMAPClient(
-            settings.IMAP_SERVER_DOMAIN,
-            settings.IMAP_SERVER_USER,
-            settings.IMAP_SERVER_PASSWORD,
-        ) as client:
-            service = IMAPFolderService(client)
-            try:
-                folders = service.list_folders()
-                existing_mailboxes = set(Mailbox.objects.values_list("name", flat=True))
-                existing_mailboxes_lower = {mailbox for mailbox in existing_mailboxes}
-                new_mailboxes = {
-                    folder for folder in folders
-                } - existing_mailboxes_lower
-                for folder in new_mailboxes:
-                    Mailbox.objects.create(name=folder)
-                self.message_user(
-                    request,
-                    _("Mailboxes successfully synced with IMAP server."),
-                    messages.SUCCESS,
-                )
-            except IMAPFolderOperationError:
-                self.message_user(
-                    request,
-                    _(
-                        "An error occurred while syncing the mailboxes with the IMAP server."
-                    ),
-                    messages.ERROR,
-                )
-            except Exception as e:
-                self.message_user(
-                    request,
-                    _("An unexpected error occurred: %s") % str(e),
-                    messages.ERROR,
-                )
-        return HttpResponseRedirect(reverse("admin:sage_mailbox_mailbox_changelist"))
-
-    def changeform_view(self, request, object_id=None, form_url="", extra_context=None):
+    def delete_model(self, request, obj):
         try:
-            return super().changeform_view(request, object_id, form_url, extra_context)
-        except PermissionDenied:
-            return HttpResponseRedirect(
-                reverse("admin:sage_mailbox_mailbox_changelist")
-            )
+            with transaction.atomic():
+                with IMAPClient(imap_host, imap_username, imap_password) as client:
+                    folder_service = IMAPFolderService(client)
+                    try:
+                        folder_service.delete_folder(obj.name)
+                    except IMAPFolderNotFoundError:
+                        # If folder is not found on IMAP, delete only in Django
+                        super().delete_model(request, obj)
+                        messages.warning(request, f'The Mailbox "{obj.name}" was deleted from admin, but it did not exist on the IMAP server.')
+                    except IMAPFolderOperationError as e:
+                        raise ValidationError(str(e))
+                    else:
+                        super().delete_model(request, obj)
+                        messages.success(request, f'The Mailbox "{obj.name}" was deleted successfully from both admin and IMAP server.')
+        except ValidationError as e:
+            messages.error(request, f"Error: {e.message}")
+        except Exception as e:
+            messages.error(request, f"Unexpected error: {str(e)}")
 
-    def delete_queryset(self, request: HttpRequest, queryset: QuerySet) -> None:
-        with IMAPClient(
-            settings.IMAP_SERVER_DOMAIN,
-            settings.IMAP_SERVER_USER,
-            settings.IMAP_SERVER_PASSWORD,
-        ) as client:
-            service = IMAPFolderService(client)
-            for obj in queryset:
-                if obj.name in DefaultMailboxes._value2member_map_:
-                    self.message_user(
-                        request,
-                        _("Cannot delete default mailbox: %s") % obj.name,
-                        messages.ERROR,
-                    )
-                    continue
-                try:
-                    service.delete_folder(obj.name)
-                    obj.delete()
-                    self.message_user(
-                        request,
-                        _("Successfully deleted mailbox: %s from IMAP Server.")
-                        % obj.name,
-                        messages.SUCCESS,
-                    )
-                except (
-                    IMAPFolderNotFoundError,
-                    IMAPFolderOperationError,
-                    IMAPUnexpectedError,
-                ) as e:
-                    self.message_user(
-                        request,
-                        _(
-                            "An error occurred while deleting the mailbox '%s' on the IMAP server: %s"
-                        )
-                        % (obj.name, str(e)),
-                        messages.ERROR,
-                    )
+    def delete_queryset(self, request, queryset):
+        try:
+            with transaction.atomic():
+                with IMAPClient(imap_host, imap_username, imap_password) as client:
+                    folder_service = IMAPFolderService(client)
+                    for obj in queryset:
+                        try:
+                            folder_service.delete_folder(obj.name)
+                        except IMAPFolderNotFoundError:
+                            # If folder is not found on IMAP, delete only in Django
+                            super().delete_model(request, obj)
+                            messages.warning(request, f'The mailbox "{obj.name}" was deleted from admin, but it did not exist on the IMAP server.')
+                        except IMAPFolderOperationError as e:
+                            raise ValidationError(str(e))
+                        else:
+                            super().delete_model(request, obj)
+                    super().delete_queryset(request, queryset)
+                messages.success(request, "The selected Mailboxes were deleted successfully from both admin and IMAP server.")
+        except ValidationError as e:
+            messages.error(request, f"Error: {e.message}")
+        except Exception as e:
+            messages.error(request, f"Unexpected error: {str(e)}")
 
-    def delete_model(self, request: HttpRequest, obj: Any) -> None:
-        if obj.name in DefaultMailboxes._value2member_map_:
-            self.message_user(
-                request,
-                _("Cannot delete default mailbox: %s") % obj.name,
-                messages.ERROR,
-            )
-            raise PermissionDenied("Cannot delete default mailbox.")
-        with IMAPClient(
-            settings.IMAP_SERVER_DOMAIN,
-            settings.IMAP_SERVER_USER,
-            settings.IMAP_SERVER_PASSWORD,
-        ) as client:
-            service = IMAPFolderService(client)
-            try:
-                service.delete_folder(obj.name)
-                super().delete_model(request, obj)
-                self.message_user(
-                    request,
-                    _("Successfully deleted mailbox: %s") % obj.name,
-                    messages.SUCCESS,
-                )
-            except (
-                IMAPFolderNotFoundError,
-                IMAPFolderOperationError,
-                IMAPUnexpectedError,
-            ) as e:
-                self.message_user(
-                    request,
-                    _(
-                        "An error occurred while deleting the mailbox '%s' on the IMAP server: %s"
-                    )
-                    % (obj.name, str(e)),
-                    messages.ERROR,
-                )
-                raise PermissionDenied("Error deleting mailbox on IMAP server.")
+    def response_add(self, request, obj, post_url_continue=None):
+        if "_continue" in request.POST:
+            return super().response_add(request, obj, post_url_continue)
+        elif "_addanother" in request.POST:
+            return HttpResponseRedirect(request.path)
+        else:
+            return HttpResponseRedirect(self.get_success_url(request, obj))
+
+    def response_change(self, request, obj):
+        if "_continue" in request.POST:
+            return super().response_change(request, obj)
+        elif "_saveasnew" in request.POST:
+            return super().response_add(request, obj)
+        elif "_addanother" in request.POST:
+            return HttpResponseRedirect(request.path)
+        else:
+            return HttpResponseRedirect(self.get_success_url(request, obj))
+
+    def response_delete(self, request: HttpRequest, obj_display: str, obj_id: int) -> HttpResponse:
+        post_url = reverse(
+            "admin:%s_%s_changelist" % (self.opts.app_label, self.opts.model_name),
+            current_app=self.admin_site.name,
+        )
+        return HttpResponseRedirect(post_url)
+
+    def get_success_url(self, request, obj):
+        return request.META.get('HTTP_REFERER', '/admin/')
+
+    def sync_folders(self, request):
+        try:
+            with IMAPClient(imap_host, imap_username, imap_password) as client:
+                folder_service = IMAPFolderService(client)
+                folders = folder_service.list_folders()
+                for folder_name in folders:
+                    Mailbox.objects.update_or_create(name=folder_name, defaults={"slug": folder_name.lower()})
+                messages.success(request, "Mailboxes synchronized successfully.")
+        except Exception as e:
+            messages.error(request, f"Unexpected error: {str(e)}")
+        return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/admin/'))
+
+    def log_deletion(self, request: HttpRequest, object: Any, object_repr: str) -> LogEntry:
+        return super().log_deletion(request, object, object_repr)
