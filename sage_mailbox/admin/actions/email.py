@@ -238,35 +238,40 @@ def download_as_eml(modeladmin, request, queryset):
 @transaction.atomic
 def restore_from_trash(modeladmin, request, queryset):
     start_time = time.time()
-    email_messages_to_update = []
+    emails_to_delete = []
     try:
-
-        with IMAPClient(host, username, password) as client:
-            mailbox_service = IMAPMailboxUIDService(client)
+        with IMAPClient(host, username, password) as imap_client:
+            imap_mailbox_service = IMAPMailboxUIDService(imap_client)
             trash_mailbox = Mailbox.objects.get(folder_type=StandardMailboxNames.TRASH)
             inbox_mailbox = Mailbox.objects.get(folder_type=StandardMailboxNames.INBOX)
 
-            for email_message in queryset:
-                mailbox_service.select(trash_mailbox.name)
-                mailbox_service.uid_restore(
-                    MessageSet(str(email_message.uid)),
-                    trash_mailbox,
-                    inbox_mailbox
+            for email in queryset:
+                imap_mailbox_service.select(trash_mailbox.name)
+                imap_mailbox_service.uid_restore(
+                    MessageSet(str(email.uid)),
+                    trash_mailbox.name,
+                    inbox_mailbox.name
                 )
-                email_message.mailbox = inbox_mailbox
-                email_messages_to_update.append(email_message)
-                logger.debug(f"Restored email with UID {email_message.uid} to inbox.")
+                emails_to_delete.append(email)
+                logger.debug(f"Restored email with UID {email.uid} to inbox.")
 
-            queryset.model.objects.bulk_update(email_messages_to_update, ['mailbox'])
-            logger.debug("Restored email messages to inbox in the database.")
+            queryset.model.objects.filter(id__in=[email.id for email in emails_to_delete]).delete()
+            logger.debug("Deleted restored email messages from the database.")
 
         end_time = time.time()
         runtime = end_time - start_time
-        messages.success(request, _("Successfully restored {} emails from trash to inbox in {:.2f} seconds.").format(len(email_messages_to_update), runtime))
+        messages.success(
+            request,
+            _("Successfully restored emails to inbox and deleted {} emails from trash in {:.2f} seconds."
+            ).format(
+                len(emails_to_delete),
+                runtime
+            )
+        )
 
     except Exception as e:
         end_time = time.time()
         runtime = end_time - start_time
         logger.error(f"Error restoring email messages from trash: {str(e)}", exc_info=True)
-        messages.error(request, _("Failed to restore some emails from trash. Please try again. Task completed in {:.2f} seconds.").format(runtime))
+        messages.error(request, _("Failed to restore and delete some emails from trash. Please try again. Task completed in {:.2f} seconds.").format(runtime))
         transaction.set_rollback(True)

@@ -8,4 +8,5 @@ from .email import (
     mark_as_read,
     mark_as_unflagged,
     mark_as_unread,
+    restore_from_trash
 )

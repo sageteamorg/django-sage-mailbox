@@ -24,7 +24,8 @@ from sage_mailbox.admin.actions import (
     mark_as_flagged,
     mark_as_unflagged,
     download_as_eml,
-    move_to_trash
+    move_to_trash,
+    restore_from_trash
 )
 
 from sage_imap.services import IMAPClient, IMAPMailboxUIDService
@@ -55,6 +56,7 @@ class EmailMessageAdmin(admin.ModelAdmin):
     change_list_template = "admin/email/change_list.html"
     list_display = (
         'id',
+        'uid',
         'get_message_id',
         'subject',
         'get_from_address',
@@ -275,9 +277,6 @@ class SentAdmin(EmailMessageAdmin):
         download_as_eml,
     )
 
-    def has_delete_permission(self, request: HttpRequest, obj = None) -> bool:
-        return False
-
     def has_change_permission(self, request: HttpRequest, obj = None) -> bool:
         return False
 
@@ -303,9 +302,6 @@ class JunkAdmin(EmailMessageAdmin):
     def has_add_permission(self, request: HttpRequest) -> bool:
         return False
 
-    def has_delete_permission(self, request: HttpRequest, obj = None) -> bool:
-        return False
-
     def has_change_permission(self, request: HttpRequest, obj = None) -> bool:
         return False
 
@@ -328,6 +324,7 @@ class TrashAdmin(EmailMessageAdmin):
 
     actions = (
         download_as_eml,
+        restore_from_trash
     )
 
     def get_queryset(self, request: HttpRequest):
@@ -335,9 +332,6 @@ class TrashAdmin(EmailMessageAdmin):
         return qs.select_related_mailbox().total_attachments().has_attachments().filter(mailbox__folder_type=StandardMailboxNames.TRASH)
 
     def has_add_permission(self, request: HttpRequest) -> bool:
-        return False
-
-    def has_delete_permission(self, request: HttpRequest, obj = None) -> bool:
         return False
 
     def has_change_permission(self, request: HttpRequest, obj = None) -> bool:
