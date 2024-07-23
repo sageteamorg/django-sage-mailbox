@@ -1,3 +1,4 @@
+from collections import OrderedDict
 import logging
 import time
 from datetime import datetime, timedelta
@@ -198,6 +199,29 @@ class EmailMessageAdmin(admin.ModelAdmin):
             '<div style="max-width: 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{}</div>',
             obj.message_id,
         )
+
+    def get_actions(self, request: HttpRequest) -> OrderedDict[Any, Any]:
+        actions = super().get_actions(request)
+
+        # If the user is a superuser, return all actions
+        if request.user.is_superuser:
+            return actions
+
+        # Define a dictionary mapping permissions to actions
+        permission_action_map = {
+            "mark_read": "mark_as_read",
+            "mark_unread": "mark_as_unread",
+            "flag_email": "mark_as_flagged",
+            "unflag_email": "mark_as_unflagged",
+            "download_eml": "download_as_eml",
+        }
+
+        # Remove actions the user does not have permission for
+        for perm, action in permission_action_map.items():
+            if not request.user.has_perm(f"sage_mailbox.{perm}"):
+                actions.pop(action, None)
+
+        return actions
 
     def get_readonly_fields(
         self, request: HttpRequest, obj: Any | None = ...

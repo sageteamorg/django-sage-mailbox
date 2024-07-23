@@ -2,18 +2,21 @@ import re
 
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+
 from django_jsonform.models.fields import JSONField
+
 from sage_imap.models.email import EmailMessage as EmailMessageDC
 
 from sage_mailbox.models.mixins import TimestampMixin
 from sage_mailbox.repository import EmailMessageManager
+from sage_mailbox.validators import validate_comma_separated_email
 
 
 class EmailMessage(TimestampMixin):
     HEADER_JSON_SCHEMA = {
         "type": "object",
         "readonly": True,
-        "title": "Product attributes",
+        "title": "Email Headers",
         "keys": {},
         "additionalProperties": {
             "type": "string",
@@ -22,8 +25,8 @@ class EmailMessage(TimestampMixin):
     }
     uid = models.IntegerField(
         verbose_name=_("IMAP UID"),
-        help_text=_("IMAP Server Unique Identifier."),
-        db_comment="IMAP Server Unique Identifier.",
+        help_text=_("Unique identifier of the IMAP server."),
+        db_comment="IMAP Server Unique Identifier (UID).",
         blank=True,
         null=True,
     )
@@ -33,75 +36,96 @@ class EmailMessage(TimestampMixin):
         null=True,
         blank=True,
         verbose_name=_("Message-ID Header"),
-        help_text=_("Message ID of the email"),
-        db_comment="Message ID of the email",
+        help_text=_("Message ID from the email client's header."),
+        db_comment="Message ID from the email client's header.",
     )
     subject = models.CharField(
         max_length=255,
         verbose_name=_("Subject"),
-        help_text=_("The subject of the email."),
+        help_text=_("Subject of the email."),
         db_comment="The subject of the email.",
     )
     from_address = models.EmailField(
         verbose_name=_("From Address"),
-        help_text=_("The sender's email address."),
+        help_text=_("Sender's email address."),
         db_comment="The sender's email address.",
     )
     to_address = models.TextField(
         verbose_name=_("To Address"),
-        help_text=_("List of recipient email addresses."),
+        validators=[validate_comma_separated_email],
+        help_text=_("Recipient email addresses (comma-separated)."),
         db_comment="List of recipient email addresses, separated by commas.",
     )
     cc_address = models.TextField(
         blank=True,
         verbose_name=_("CC Address"),
-        help_text=_("List of CC recipient email addresses."),
+        validators=[validate_comma_separated_email],
+        help_text=_("CC recipient email addresses (comma-separated)."),
         db_comment="List of CC recipient email addresses, separated by commas.",
     )
     bcc_address = models.TextField(
         blank=True,
         verbose_name=_("BCC Address"),
-        help_text=_("List of BCC recipient email addresses."),
+        validators=[validate_comma_separated_email],
+        help_text=_("BCC recipient email addresses (comma-separated)."),
         db_comment="List of BCC recipient email addresses, separated by commas.",
     )
     date = models.DateTimeField(
         null=True,
         blank=True,
         verbose_name=_("Date"),
-        help_text=_("The date the email was sent."),
+        help_text=_("Date the email was sent (ISO format)."),
         db_comment="The date the email was sent, in ISO format.",
     )
-    raw = models.BinaryField(blank=True, null=True)
+    raw = models.BinaryField(
+        blank=True, 
+        null=True,
+        verbose_name=_("Raw Email Data"),
+        help_text=_("Raw binary data of the email."),
+        db_comment="The raw binary data of the email.",
+    )
     plain_body = models.TextField(
         verbose_name=_("Plain Body"),
-        help_text=_("The plain text body content of the email."),
+        help_text=_("Plain text body of the email."),
         db_comment="The plain text body content of the email.",
     )
     html_body = models.TextField(
         verbose_name=_("HTML Body"),
-        help_text=_("The HTML body content of the email."),
+        help_text=_("HTML body of the email."),
         db_comment="The HTML body content of the email.",
     )
-    flags = models.ManyToManyField("Flag", related_name="email_flags", blank=True)
-    headers = JSONField(schema=HEADER_JSON_SCHEMA, null=True, blank=True)
-
+    flags = models.ManyToManyField(
+        "Flag", 
+        blank=True,
+        verbose_name=_("Flags"),
+        help_text=_("Flags associated with the email."),
+        db_comment="Flags associated with the email.",
+    )
+    headers = JSONField(
+        schema=HEADER_JSON_SCHEMA, 
+        null=True, 
+        blank=True,
+        verbose_name=_("Headers"),
+        help_text=_("Email headers in JSON format."),
+        db_comment="The email headers in JSON format.",
+    )
     mailbox = models.ForeignKey(
         "Mailbox",
         related_name="emails",
         on_delete=models.CASCADE,
         verbose_name=_("Mailbox"),
-        help_text=_("The mailbox to which this email belongs."),
+        help_text=_("Mailbox to which this email belongs."),
         db_comment="The mailbox to which this email belongs.",
     )
     is_read = models.BooleanField(
         default=False,
-        help_text=_("Indicates whether the email has been read."),
+        help_text=_("Indicates if the email has been read."),
         db_comment="Indicates whether the email has been read.",
         verbose_name=_("Is Read"),
     )
     is_flagged = models.BooleanField(
         default=False,
-        help_text=_("Indicates whether the email has been flagged."),
+        help_text=_("Indicates if the email has been flagged."),
         db_comment="Indicates whether the email has been flagged.",
         verbose_name=_("Is Flagged"),
     )
@@ -109,9 +133,9 @@ class EmailMessage(TimestampMixin):
         blank=True,
         null=True,
         default=0,
+        verbose_name=_("Size"),
         help_text=_("Size of the email in bytes."),
         db_comment="Size of the email in bytes.",
-        verbose_name=_("Size"),
     )
 
     objects = EmailMessageManager()
@@ -128,6 +152,14 @@ class EmailMessage(TimestampMixin):
             models.Index(fields=["subject"], name="idx_email_subject"),
             models.Index(fields=["from_address"], name="idx_email_from_address"),
             models.Index(fields=["date"], name="idx_email_date"),
+        ]
+
+        permissions = [
+            ("mark_read", _("Can mark email as read")),
+            ("mark_unread", _("Can mark email as unread")),
+            ("flag_email", _("Can flag email")),
+            ("unflag_email", _("Can unflag email")),
+            ("download_eml", _("Can download email data")),
         ]
 
     def save(self, *args, **kwargs):
