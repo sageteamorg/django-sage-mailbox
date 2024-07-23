@@ -12,6 +12,7 @@ from sage_mailbox.repository import EmailMessageManager
 from sage_mailbox.validators import validate_comma_separated_email
 
 
+
 class EmailMessage(TimestampMixin):
     HEADER_JSON_SCHEMA = {
         "type": "object",

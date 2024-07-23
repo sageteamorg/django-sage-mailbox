@@ -347,9 +347,6 @@ class SentAdmin(EmailMessageAdmin):
 
     actions = (download_as_eml,)
 
-    def has_change_permission(self, request: HttpRequest, obj=None) -> bool:
-        return False
-
     def get_queryset(self, request: HttpRequest):
         qs = super().get_queryset(request)
         return (

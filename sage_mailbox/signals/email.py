@@ -1,17 +1,23 @@
 import logging
 import mimetypes
+import email
+from email.utils import make_msgid
 
 from django.conf import settings
-from django.core.mail import EmailMultiAlternatives
 from django.db import transaction
-from django.db.models.signals import post_save
 from django.dispatch import receiver
-from sage_imap.helpers.mailbox import DefaultMailboxes
+from django.utils.timezone import now
+from django.contrib.sites.models import Site
+from django.db.models.signals import post_save
+from django.core.mail import EmailMultiAlternatives
+
 from sage_imap.services import IMAPClient, IMAPMailboxService
 
-from sage_mailbox.models import Archive, Draft, EmailMessage, Inbox, Junk, Sent, Trash
+from sage_mailbox.models import EmailMessage, Sent
+from sage_mailbox.models.mailbox import Mailbox, StandardMailboxNames
 
 logger = logging.getLogger(__name__)
+
 
 
 @receiver(post_save, sender=EmailMessage)
@@ -19,8 +25,16 @@ def send_email_after_save(sender, instance, created, **kwargs):
     if created:
         transaction.on_commit(lambda: send_email(instance))
 
-
 def send_email(email_message):
+    current_site = Site.objects.get_current()
+    # Generate a Message-ID if not present
+    if not email_message.message_id:
+        email_message.message_id = make_msgid(domain=current_site.domain)
+
+    # Ensure the date is set
+    if not email_message.date:
+        email_message.date = now()
+
     # Create the email message
     subject = email_message.subject
     from_email = email_message.from_address
@@ -30,7 +44,7 @@ def send_email(email_message):
 
     msg = EmailMultiAlternatives(
         subject=subject,
-        body=email_message.body,
+        body=email_message.plain_body,
         from_email=from_email,
         to=to,
         cc=cc,
@@ -38,8 +52,8 @@ def send_email(email_message):
     )
 
     # Check if the body contains HTML content
-    if "<html>" in email_message.body:
-        msg.attach_alternative(email_message.body, "text/html")
+    if email_message.html_body:
+        msg.attach_alternative(email_message.html_body, "text/html")
 
     # Attach any files
     for attachment in email_message.attachments.all():
@@ -62,19 +76,33 @@ def send_email(email_message):
     # Send the email
     msg.send()
 
-    # Save email to IMAP Sent folder
+    # Save raw email to IMAP Sent folder and get raw email data
     raw_email = msg.message().as_string()
+    email_message.raw = raw_email.encode('utf-8')  # Ensure raw email is bytes
+
     host = settings.IMAP_SERVER_DOMAIN
     username = settings.IMAP_SERVER_USER
     password = settings.IMAP_SERVER_PASSWORD
 
     with IMAPClient(host, username, password) as client:
         with IMAPMailboxService(client) as mailbox:
-            mailbox.save_sent_email(raw_email, DefaultMailboxes.SENT)
+            folder = Mailbox.objects.get(folder_type=StandardMailboxNames.SENT)
+            mailbox.select(folder.name)
+            mailbox.save_sent(email_message.raw, folder.name)  # Send raw email as bytes
 
+    # Save headers to email_message
+    parsed_email = email.message_from_bytes(email_message.raw)
+    headers = {k: v for k, v in parsed_email.items()}
+    email_message.headers = headers
+
+    # Calculate and save email size
+    email_message.size = len(email_message.raw)
+
+    # Save email message with updated fields
+    email_message.save()
 
 # Connect the signal to all proxies
-proxy_models = [EmailMessage, Inbox, Draft, Sent, Trash, Junk, Archive]
+proxy_models = [EmailMessage, Sent]
 
 for model in proxy_models:
     post_save.connect(send_email_after_save, sender=model)
