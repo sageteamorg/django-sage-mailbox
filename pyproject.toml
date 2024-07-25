@@ -1,19 +1,28 @@
 [tool.poetry]
 name = "django-sage-mailbox"
 version = "0.1.0"
-description = "A Django package for email integration"
-authors = ["Sepehr Akbarzadeh <sa.goldeneagle@gmail.com>"]
+description = "A Django package for mailbox client integration."
+authors = ["Sepehr Akbarzadeh <sepehr@sageteam.org>"]
 readme = "README.md"
 license = "MIT"
-keywords = ["django", "email", "integration"]
+keywords = ["django", "email", "imap", "mailbox", "sageteam", "django-packages"]
+repository = "https://github.com/sageteamorg/django-sage-mailbox"
 
 classifiers=[
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Intended Audience :: Developers",
+    "Framework :: Django",
 ]
 
+packages = [
+    { include = "sage_mailbox" }
+]
+
+[tool.poetry.urls]
+"Documentation" = "https://django-sage-mailbox.readthedocs.io/en/latest/"
+"Issues" = "https://github.com/sageteamorg/django-sage-mailbox/issues"
 
 [tool.poetry.dependencies]
 python = "^3.12"
