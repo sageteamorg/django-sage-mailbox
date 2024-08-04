@@ -58,6 +58,8 @@ class AttachmentInline(admin.TabularInline):
 
 @admin.register(EmailMessage)
 class EmailMessageAdmin(admin.ModelAdmin):
+    mailbox_type = StandardMailboxNames.INBOX
+
     change_list_template = "admin/email/change_list.html"
     list_display = (
         "id",
@@ -265,7 +267,7 @@ class EmailMessageAdmin(admin.ModelAdmin):
         start_time = time.time()
 
         mailbox_name = Mailbox.objects.get(
-            folder_type=StandardMailboxNames.INBOX
+            folder_type=self.mailbox_type
         ).folder_type
 
         try:
@@ -342,6 +344,7 @@ class EmailMessageAdmin(admin.ModelAdmin):
 
 @admin.register(Sent)
 class SentAdmin(EmailMessageAdmin):
+    mailbox_type = StandardMailboxNames.SENT
 
     actions = (download_as_eml,)
 
@@ -369,6 +372,7 @@ class SentAdmin(EmailMessageAdmin):
 
 @admin.register(Junk)
 class JunkAdmin(EmailMessageAdmin):
+    mailbox_type = StandardMailboxNames.SPAM
 
     actions = (download_as_eml,)
 
@@ -402,6 +406,8 @@ class JunkAdmin(EmailMessageAdmin):
 
 @admin.register(Trash)
 class TrashAdmin(EmailMessageAdmin):
+
+    mailbox_type = StandardMailboxNames.TRASH
 
     actions = (download_as_eml, restore_from_trash)
 
