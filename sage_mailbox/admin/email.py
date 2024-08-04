@@ -35,6 +35,10 @@ from sage_mailbox.repository.service import EmailSyncService
 
 logger = logging.getLogger(__name__)
 
+imap_host = getattr(settings, 'IMAP_SERVER_DOMAIN', None)
+imap_username = getattr(settings, 'IMAP_SERVER_USER', None)
+imap_password = getattr(settings, 'IMAP_SERVER_PASSWORD', None)
+
 
 class AttachmentInline(admin.TabularInline):
     model = Attachment
@@ -259,10 +263,6 @@ class EmailMessageAdmin(admin.ModelAdmin):
 
     def sync_emails(self, request):
         start_time = time.time()
-
-        imap_host = settings.IMAP_SERVER_DOMAIN
-        imap_username = settings.IMAP_SERVER_USER
-        imap_password = settings.IMAP_SERVER_PASSWORD
 
         mailbox_name = Mailbox.objects.get(
             folder_type=StandardMailboxNames.INBOX

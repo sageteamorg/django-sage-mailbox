@@ -19,6 +19,10 @@ from sage_imap.services import IMAPClient, IMAPFolderService
 from sage_mailbox.admin.actions import delete_selected
 from sage_mailbox.models.mailbox import Mailbox, StandardMailboxNames
 
+imap_host = getattr(settings, 'IMAP_SERVER_DOMAIN', None)
+imap_username = getattr(settings, 'IMAP_SERVER_USER', None)
+imap_password = getattr(settings, 'IMAP_SERVER_PASSWORD', None)
+
 
 @admin.register(Mailbox)
 class MailboxAdmin(admin.ModelAdmin):
@@ -44,10 +48,6 @@ class MailboxAdmin(admin.ModelAdmin):
 
     def save_model(self, request, obj, form, change):
         new_name = form.cleaned_data.get("name")
-
-        imap_host = settings.IMAP_SERVER_DOMAIN
-        imap_username = settings.IMAP_SERVER_USER
-        imap_password = settings.IMAP_SERVER_PASSWORD
 
         try:
             with transaction.atomic():
@@ -94,11 +94,6 @@ class MailboxAdmin(admin.ModelAdmin):
         return custom_urls + urls
 
     def delete_model(self, request, obj):
-
-        imap_host = settings.IMAP_SERVER_DOMAIN
-        imap_username = settings.IMAP_SERVER_USER
-        imap_password = settings.IMAP_SERVER_PASSWORD
-
         try:
             with transaction.atomic():
                 with IMAPClient(imap_host, imap_username, imap_password) as client:
@@ -126,10 +121,6 @@ class MailboxAdmin(admin.ModelAdmin):
             messages.error(request, f"Unexpected error: {str(e)}")
 
     def delete_queryset(self, request, queryset):
-        imap_host = settings.IMAP_SERVER_DOMAIN
-        imap_username = settings.IMAP_SERVER_USER
-        imap_password = settings.IMAP_SERVER_PASSWORD
-
         try:
             with transaction.atomic():
                 with IMAPClient(imap_host, imap_username, imap_password) as client:
@@ -189,10 +180,6 @@ class MailboxAdmin(admin.ModelAdmin):
         return request.META.get("HTTP_REFERER", "/admin/")
 
     def sync_folders(self, request):
-        imap_host = settings.IMAP_SERVER_DOMAIN
-        imap_username = settings.IMAP_SERVER_USER
-        imap_password = settings.IMAP_SERVER_PASSWORD
-
         try:
             with IMAPClient(imap_host, imap_username, imap_password) as client:
                 folder_service = IMAPFolderService(client)
