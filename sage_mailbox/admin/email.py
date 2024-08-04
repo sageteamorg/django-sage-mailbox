@@ -310,11 +310,8 @@ class EmailMessageAdmin(admin.ModelAdmin):
         email_message = self.get_object(request, object_id)
         if email_message and not email_message.is_read:
             try:
-                host = settings.IMAP_SERVER_DOMAIN
-                username = settings.IMAP_SERVER_USER
-                password = settings.IMAP_SERVER_PASSWORD
 
-                with IMAPClient(host, username, password) as client:
+                with IMAPClient(imap_host, imap_username, imap_password) as client:
                     with IMAPMailboxUIDService(client) as mailbox:
                         mailbox.select(email_message.mailbox.name)
 
@@ -447,11 +444,8 @@ class TrashAdmin(EmailMessageAdmin):
     def clear_trash(self, request: HttpRequest):
         start_time = time.time()
         try:
-            host = settings.IMAP_SERVER_DOMAIN
-            username = settings.IMAP_SERVER_USER
-            password = settings.IMAP_SERVER_PASSWORD
 
-            with IMAPClient(host, username, password) as client:
+            with IMAPClient(imap_host, imap_username, imap_password) as client:
                 trash_mailbox = Mailbox.objects.get(
                     folder_type=StandardMailboxNames.TRASH
                 )
