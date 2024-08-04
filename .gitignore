@@ -151,12 +151,27 @@ dmypy.json
 # pytype static type analyzer
 .pytype/
 
+# local files
+run.py
+*/run.py
+sage.py
+*/sage.py
+
+# ruff
+.ruff_cache/
+
 # Cython debug symbols
 cython_debug/
 
+kernel/
+manage.py
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
 #  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
+
+# Ignore all migrations files except __init__.py
+**/migrations/*
+!**/migrations/__init__.py
