@@ -1,4 +1,3 @@
-
 DEFAULTS = {
     "IMAP_SERVER_DOMAIN": None,
     "IMAP_SERVER_PORT": 993,

@@ -35,10 +35,6 @@ from sage_mailbox.repository.service import EmailSyncService
 
 logger = logging.getLogger(__name__)
 
-imap_host = settings.IMAP_SERVER_DOMAIN
-imap_username = settings.IMAP_SERVER_USER
-imap_password = settings.IMAP_SERVER_PASSWORD
-
 
 class AttachmentInline(admin.TabularInline):
     model = Attachment
@@ -58,9 +54,6 @@ class AttachmentInline(admin.TabularInline):
 
 @admin.register(EmailMessage)
 class EmailMessageAdmin(admin.ModelAdmin):
-    mailbox_name = Mailbox.objects.get(
-        folder_type=StandardMailboxNames.INBOX
-    ).folder_type
     change_list_template = "admin/email/change_list.html"
     list_display = (
         "id",
@@ -267,9 +260,17 @@ class EmailMessageAdmin(admin.ModelAdmin):
     def sync_emails(self, request):
         start_time = time.time()
 
+        imap_host = settings.IMAP_SERVER_DOMAIN
+        imap_username = settings.IMAP_SERVER_USER
+        imap_password = settings.IMAP_SERVER_PASSWORD
+
+        mailbox_name = Mailbox.objects.get(
+            folder_type=StandardMailboxNames.INBOX
+        ).folder_type
+
         try:
             # Try to get the mailbox
-            mailbox = Mailbox.objects.get(folder_type=self.mailbox_name)
+            mailbox = Mailbox.objects.get(folder_type=mailbox_name)
         except ObjectDoesNotExist:
             # If the mailbox does not exist, show a user-friendly message
             message = "The INBOX mailbox does not exist. Please sync mailboxes first, then sync emails."
@@ -341,9 +342,6 @@ class EmailMessageAdmin(admin.ModelAdmin):
 
 @admin.register(Sent)
 class SentAdmin(EmailMessageAdmin):
-    mailbox_name = Mailbox.objects.get(
-        folder_type=StandardMailboxNames.SENT
-    ).folder_type
 
     actions = (download_as_eml,)
 
@@ -371,9 +369,6 @@ class SentAdmin(EmailMessageAdmin):
 
 @admin.register(Junk)
 class JunkAdmin(EmailMessageAdmin):
-    mailbox_name = Mailbox.objects.get(
-        folder_type=StandardMailboxNames.SPAM
-    ).folder_type
 
     actions = (download_as_eml,)
 
@@ -407,9 +402,6 @@ class JunkAdmin(EmailMessageAdmin):
 
 @admin.register(Trash)
 class TrashAdmin(EmailMessageAdmin):
-    mailbox_name = Mailbox.objects.get(
-        folder_type=StandardMailboxNames.TRASH
-    ).folder_type
 
     actions = (download_as_eml, restore_from_trash)
 
