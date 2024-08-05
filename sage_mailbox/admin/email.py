@@ -385,7 +385,7 @@ class JunkAdmin(EmailMessageAdmin):
             qs.select_related_mailbox()
             .total_attachments()
             .has_attachments()
-            .filter(mailbox__folder_type=StandardMailboxNames.SENT)
+            .filter(mailbox__folder_type=StandardMailboxNames.SPAM)
         )
 
     def get_urls(self) -> list[URLPattern]:
