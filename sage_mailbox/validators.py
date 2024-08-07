@@ -29,7 +29,9 @@ class FolderNameValidator:
             raise ValidationError(self.length_error_message, code=self.code_length)
 
         if not self.regex.match(value):
-            raise ValidationError(self.character_error_message, code=self.code_character)
+            raise ValidationError(
+                self.character_error_message, code=self.code_character
+            )
 
     def __eq__(self, other):
         return (

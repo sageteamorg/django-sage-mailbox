@@ -35,9 +35,9 @@ from sage_mailbox.repository.service import EmailSyncService
 
 logger = logging.getLogger(__name__)
 
-imap_host = settings.IMAP_SERVER_DOMAIN
-imap_username = settings.IMAP_SERVER_USER
-imap_password = settings.IMAP_SERVER_PASSWORD
+imap_host = getattr(settings, 'IMAP_SERVER_DOMAIN', None)
+imap_username = getattr(settings, 'IMAP_SERVER_USER', None)
+imap_password = getattr(settings, 'IMAP_SERVER_PASSWORD', None)
 
 
 class AttachmentInline(admin.TabularInline):
@@ -58,9 +58,8 @@ class AttachmentInline(admin.TabularInline):
 
 @admin.register(EmailMessage)
 class EmailMessageAdmin(admin.ModelAdmin):
-    mailbox_name = Mailbox.objects.get(
-        folder_type=StandardMailboxNames.INBOX
-    ).folder_type
+    mailbox_type = StandardMailboxNames.INBOX
+
     change_list_template = "admin/email/change_list.html"
     list_display = (
         "id",
@@ -267,9 +266,13 @@ class EmailMessageAdmin(admin.ModelAdmin):
     def sync_emails(self, request):
         start_time = time.time()
 
+        mailbox_name = Mailbox.objects.get(
+            folder_type=self.mailbox_type
+        ).folder_type
+
         try:
             # Try to get the mailbox
-            mailbox = Mailbox.objects.get(folder_type=self.mailbox_name)
+            mailbox = Mailbox.objects.get(folder_type=mailbox_name)
         except ObjectDoesNotExist:
             # If the mailbox does not exist, show a user-friendly message
             message = "The INBOX mailbox does not exist. Please sync mailboxes first, then sync emails."
@@ -307,11 +310,8 @@ class EmailMessageAdmin(admin.ModelAdmin):
         email_message = self.get_object(request, object_id)
         if email_message and not email_message.is_read:
             try:
-                host = settings.IMAP_SERVER_DOMAIN
-                username = settings.IMAP_SERVER_USER
-                password = settings.IMAP_SERVER_PASSWORD
 
-                with IMAPClient(host, username, password) as client:
+                with IMAPClient(imap_host, imap_username, imap_password) as client:
                     with IMAPMailboxUIDService(client) as mailbox:
                         mailbox.select(email_message.mailbox.name)
 
@@ -341,9 +341,7 @@ class EmailMessageAdmin(admin.ModelAdmin):
 
 @admin.register(Sent)
 class SentAdmin(EmailMessageAdmin):
-    mailbox_name = Mailbox.objects.get(
-        folder_type=StandardMailboxNames.SENT
-    ).folder_type
+    mailbox_type = StandardMailboxNames.SENT
 
     actions = (download_as_eml,)
 
@@ -371,9 +369,7 @@ class SentAdmin(EmailMessageAdmin):
 
 @admin.register(Junk)
 class JunkAdmin(EmailMessageAdmin):
-    mailbox_name = Mailbox.objects.get(
-        folder_type=StandardMailboxNames.SPAM
-    ).folder_type
+    mailbox_type = StandardMailboxNames.SPAM
 
     actions = (download_as_eml,)
 
@@ -389,7 +385,7 @@ class JunkAdmin(EmailMessageAdmin):
             qs.select_related_mailbox()
             .total_attachments()
             .has_attachments()
-            .filter(mailbox__folder_type=StandardMailboxNames.SENT)
+            .filter(mailbox__folder_type=StandardMailboxNames.SPAM)
         )
 
     def get_urls(self) -> list[URLPattern]:
@@ -407,9 +403,8 @@ class JunkAdmin(EmailMessageAdmin):
 
 @admin.register(Trash)
 class TrashAdmin(EmailMessageAdmin):
-    mailbox_name = Mailbox.objects.get(
-        folder_type=StandardMailboxNames.TRASH
-    ).folder_type
+
+    mailbox_type = StandardMailboxNames.TRASH
 
     actions = (download_as_eml, restore_from_trash)
 
@@ -449,11 +444,8 @@ class TrashAdmin(EmailMessageAdmin):
     def clear_trash(self, request: HttpRequest):
         start_time = time.time()
         try:
-            host = settings.IMAP_SERVER_DOMAIN
-            username = settings.IMAP_SERVER_USER
-            password = settings.IMAP_SERVER_PASSWORD
 
-            with IMAPClient(host, username, password) as client:
+            with IMAPClient(imap_host, imap_username, imap_password) as client:
                 trash_mailbox = Mailbox.objects.get(
                     folder_type=StandardMailboxNames.TRASH
                 )

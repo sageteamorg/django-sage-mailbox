@@ -19,11 +19,11 @@ from sage_mailbox.models.mailbox import Mailbox, StandardMailboxNames
 logger = logging.getLogger(__name__)
 
 
-
 @receiver(post_save, sender=EmailMessage)
 def send_email_after_save(sender, instance, created, **kwargs):
     if created:
         transaction.on_commit(lambda: send_email(instance))
+
 
 def send_email(email_message):
     current_site = Site.objects.get_current()
@@ -78,7 +78,7 @@ def send_email(email_message):
 
     # Save raw email to IMAP Sent folder and get raw email data
     raw_email = msg.message().as_string()
-    email_message.raw = raw_email.encode('utf-8')  # Ensure raw email is bytes
+    email_message.raw = raw_email.encode("utf-8")  # Ensure raw email is bytes
 
     host = settings.IMAP_SERVER_DOMAIN
     username = settings.IMAP_SERVER_USER
@@ -100,6 +100,7 @@ def send_email(email_message):
 
     # Save email message with updated fields
     email_message.save()
+
 
 # Connect the signal to all proxies
 proxy_models = [EmailMessage, Sent]
