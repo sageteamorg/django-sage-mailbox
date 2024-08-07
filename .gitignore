@@ -157,6 +157,8 @@ run.py
 sage.py
 */sage.py
 
+*/attachments/*
+
 # ruff
 .ruff_cache/
 
