@@ -12,7 +12,6 @@ from sage_mailbox.repository import EmailMessageManager
 from sage_mailbox.validators import validate_comma_separated_email
 
 
-
 class EmailMessage(TimestampMixin):
     HEADER_JSON_SCHEMA = {
         "type": "object",
@@ -79,7 +78,7 @@ class EmailMessage(TimestampMixin):
         db_comment="The date the email was sent, in ISO format.",
     )
     raw = models.BinaryField(
-        blank=True, 
+        blank=True,
         null=True,
         verbose_name=_("Raw Email Data"),
         help_text=_("Raw binary data of the email."),
@@ -96,15 +95,15 @@ class EmailMessage(TimestampMixin):
         db_comment="The HTML body content of the email.",
     )
     flags = models.ManyToManyField(
-        "Flag", 
+        "Flag",
         blank=True,
         verbose_name=_("Flags"),
         help_text=_("Flags associated with the email."),
         db_comment="Flags associated with the email.",
     )
     headers = JSONField(
-        schema=HEADER_JSON_SCHEMA, 
-        null=True, 
+        schema=HEADER_JSON_SCHEMA,
+        null=True,
         blank=True,
         verbose_name=_("Headers"),
         help_text=_("Email headers in JSON format."),

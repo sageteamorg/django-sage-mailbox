@@ -16,9 +16,6 @@ from sage_mailbox.models.mailbox import Mailbox, StandardMailboxNames
 
 logger = logging.getLogger(__name__)
 
-host = settings.IMAP_SERVER_DOMAIN
-username = settings.IMAP_SERVER_USER
-password = settings.IMAP_SERVER_PASSWORD
 
 
 @admin.action(description=_("Move selected emails to trash"))
@@ -26,6 +23,11 @@ password = settings.IMAP_SERVER_PASSWORD
 def move_to_trash(modeladmin, request, queryset):
     start_time = time.time()
     emails_to_delete = []
+
+    host = settings.IMAP_SERVER_DOMAIN
+    username = settings.IMAP_SERVER_USER
+    password = settings.IMAP_SERVER_PASSWORD
+
     try:
         with IMAPClient(host, username, password) as imap_client:
             imap_mailbox_service = IMAPMailboxUIDService(imap_client)
@@ -71,6 +73,11 @@ def move_to_trash(modeladmin, request, queryset):
 def mark_as_read(modeladmin, request, queryset):
     start_time = time.time()
     email_messages_to_update = []
+
+    host = settings.IMAP_SERVER_DOMAIN
+    username = settings.IMAP_SERVER_USER
+    password = settings.IMAP_SERVER_PASSWORD
+
     try:
         with IMAPClient(host, username, password) as client:
             mailbox = IMAPMailboxUIDService(client)
@@ -120,6 +127,11 @@ def mark_as_read(modeladmin, request, queryset):
 def mark_as_unread(modeladmin, request, queryset):
     start_time = time.time()
     email_messages_to_update = []
+
+    host = settings.IMAP_SERVER_DOMAIN
+    username = settings.IMAP_SERVER_USER
+    password = settings.IMAP_SERVER_PASSWORD
+
     try:
 
         with IMAPClient(host, username, password) as client:
@@ -175,6 +187,11 @@ def mark_as_unread(modeladmin, request, queryset):
 def mark_as_flagged(modeladmin, request, queryset):
     start_time = time.time()
     email_messages_to_update = []
+
+    host = settings.IMAP_SERVER_DOMAIN
+    username = settings.IMAP_SERVER_USER
+    password = settings.IMAP_SERVER_PASSWORD
+
     try:
         with IMAPClient(host, username, password) as client:
             mailbox = IMAPMailboxUIDService(client)
@@ -230,6 +247,11 @@ def mark_as_flagged(modeladmin, request, queryset):
 def mark_as_unflagged(modeladmin, request, queryset):
     start_time = time.time()
     email_messages_to_update = []
+
+    host = settings.IMAP_SERVER_DOMAIN
+    username = settings.IMAP_SERVER_USER
+    password = settings.IMAP_SERVER_PASSWORD
+
     try:
 
         with IMAPClient(host, username, password) as client:
@@ -286,6 +308,10 @@ def download_as_eml(modeladmin, request, queryset):
     start_time = time.time()
     email_files = []
 
+    host = settings.IMAP_SERVER_DOMAIN
+    username = settings.IMAP_SERVER_USER
+    password = settings.IMAP_SERVER_PASSWORD
+
     try:
         for email_message in queryset:
             if email_message.raw:
@@ -335,6 +361,11 @@ def download_as_eml(modeladmin, request, queryset):
 def restore_from_trash(modeladmin, request, queryset):
     start_time = time.time()
     emails_to_delete = []
+
+    host = settings.IMAP_SERVER_DOMAIN
+    username = settings.IMAP_SERVER_USER
+    password = settings.IMAP_SERVER_PASSWORD
+
     try:
         with IMAPClient(host, username, password) as imap_client:
             imap_mailbox_service = IMAPMailboxUIDService(imap_client)

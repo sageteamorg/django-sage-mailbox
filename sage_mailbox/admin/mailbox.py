@@ -19,9 +19,9 @@ from sage_imap.services import IMAPClient, IMAPFolderService
 from sage_mailbox.admin.actions import delete_selected
 from sage_mailbox.models.mailbox import Mailbox, StandardMailboxNames
 
-imap_host = settings.IMAP_SERVER_DOMAIN
-imap_username = settings.IMAP_SERVER_USER
-imap_password = settings.IMAP_SERVER_PASSWORD
+imap_host = getattr(settings, 'IMAP_SERVER_DOMAIN', None)
+imap_username = getattr(settings, 'IMAP_SERVER_USER', None)
+imap_password = getattr(settings, 'IMAP_SERVER_PASSWORD', None)
 
 
 @admin.register(Mailbox)
