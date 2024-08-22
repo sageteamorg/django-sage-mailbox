@@ -37,7 +37,7 @@ class MailboxAdmin(admin.ModelAdmin):
         (None, {"fields": ("name", "slug", "folder_type")}),
         (_("Change Log"), {"fields": ("created_at", "modified_at")}),
     )
-    readonly_fields = ("folder_type", "created_at", "modified_at")
+    readonly_fields = ("created_at", "modified_at")
     actions = [delete_selected]
 
     def get_readonly_fields(self, request, obj=None):
