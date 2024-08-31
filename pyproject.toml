@@ -33,6 +33,7 @@ django = "^5.0.7"
 python-sage-imap = "^0.4.2"
 django-jsonform = "^2.22.0"
 python-dateutil = "^2.9.0.post0"
+django-autoslug = "^1.9.9"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.4.2"
