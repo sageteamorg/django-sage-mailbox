@@ -19,10 +19,10 @@ class FolderNameValidator:
     """
 
     length_error_message = "Folder name must be between 1 and 255 characters long."
-    character_error_message = "Folder name contains invalid characters. Allowed characters are letters, numbers, underscore, and hyphen. Spaces are not allowed."
+    character_error_message = "Folder name contains invalid characters. Allowed characters are letters, numbers, underscore, hyphen, and dot. Spaces are not allowed."
     code_length = "folder_name_length"
     code_character = "folder_name_invalid_character"
-    regex = re.compile(r"^[\w-]+$")
+    regex = re.compile(r"^[\w.-]+$")
 
     def __call__(self, value):
         if not (1 <= len(value) <= 255):
