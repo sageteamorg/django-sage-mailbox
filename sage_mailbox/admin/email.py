@@ -1,12 +1,17 @@
-from collections import OrderedDict
+import email
 import logging
+import mimetypes
 import time
+from collections import OrderedDict
 from datetime import datetime, timedelta
+from email.utils import make_msgid
 from typing import Any
 
 from django.conf import settings
 from django.contrib import admin, messages
+from django.contrib.sites.models import Site
 from django.core.exceptions import ObjectDoesNotExist
+from django.core.mail import EmailMultiAlternatives
 from django.db import transaction
 from django.http import HttpRequest, HttpResponseRedirect
 from django.shortcuts import redirect
@@ -14,11 +19,12 @@ from django.urls import path, reverse
 from django.urls.resolvers import URLPattern
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
+from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 from sage_imap.helpers.enums import Flag, FlagCommand
 from sage_imap.helpers.search import IMAPSearchCriteria
 from sage_imap.models.message import MessageSet
-from sage_imap.services import IMAPClient, IMAPMailboxUIDService
+from sage_imap.services import IMAPClient, IMAPMailboxService, IMAPMailboxUIDService
 
 from sage_mailbox.admin.actions import (
     download_as_eml,
@@ -35,9 +41,9 @@ from sage_mailbox.repository.service import EmailSyncService
 
 logger = logging.getLogger(__name__)
 
-imap_host = getattr(settings, 'IMAP_SERVER_DOMAIN', None)
-imap_username = getattr(settings, 'IMAP_SERVER_USER', None)
-imap_password = getattr(settings, 'IMAP_SERVER_PASSWORD', None)
+imap_host = getattr(settings, "IMAP_SERVER_DOMAIN", None)
+imap_username = getattr(settings, "IMAP_SERVER_USER", None)
+imap_password = getattr(settings, "IMAP_SERVER_PASSWORD", None)
 
 
 class AttachmentInline(admin.TabularInline):
@@ -266,21 +272,23 @@ class EmailMessageAdmin(admin.ModelAdmin):
     def sync_emails(self, request):
         start_time = time.time()
 
-        mailbox_name = Mailbox.objects.get(
-            folder_type=self.mailbox_type
-        ).folder_type
+        mailbox_name = Mailbox.objects.get(folder_type=self.mailbox_type).folder_type
 
         try:
             # Try to get the mailbox
             mailbox = Mailbox.objects.get(folder_type=mailbox_name)
         except ObjectDoesNotExist:
             # If the mailbox does not exist, show a user-friendly message
-            message = "The INBOX mailbox does not exist. Please sync mailboxes first, then sync emails."
+            message = (
+                "The INBOX mailbox does not exist. Please sync mailboxes first, "
+                "then sync emails."
+            )
             messages.add_message(request, messages.WARNING, message)
 
             # Redirect to the admin change list URL
             change_list_url = reverse(
-                f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_changelist"
+                f"admin:{self.model._meta.app_label}_"
+                f"{self.model._meta.model_name}_changelist"
             )
             return redirect(change_list_url)
 
@@ -295,14 +303,18 @@ class EmailMessageAdmin(admin.ModelAdmin):
         created_attachments = result.get("created_attachments", 0)
 
         # Create a message to display in the admin interface
-        message = f"Email synchronization completed: {created_emails} emails and {created_attachments} attachments created in {runtime:.2f} seconds."
+        message = (
+            f"Email synchronization completed: {created_emails} emails and "
+            f"{created_attachments} attachments created in {runtime:.2f} seconds."
+        )
 
         # Set the message in Django's messages framework
         messages.add_message(request, messages.INFO, message)
 
         # Redirect to the change list URL
         change_list_url = reverse(
-            f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_changelist"
+            f"admin:{self.model._meta.app_label}_"
+            f"{self.model._meta.model_name}_changelist"
         )
         return redirect(change_list_url)
 
@@ -310,7 +322,6 @@ class EmailMessageAdmin(admin.ModelAdmin):
         email_message = self.get_object(request, object_id)
         if email_message and not email_message.is_read:
             try:
-
                 with IMAPClient(imap_host, imap_username, imap_password) as client:
                     with IMAPMailboxUIDService(client) as mailbox:
                         mailbox.select(email_message.mailbox.name)
@@ -319,18 +330,22 @@ class EmailMessageAdmin(admin.ModelAdmin):
                             "STORE", str(email_message.uid), "+FLAGS", "\\Seen"
                         )
                         logger.debug(
-                            f"Marked email with UID {email_message.uid} as SEEN on IMAP server."
+                            "Marked email with UID %s as SEEN on IMAP server.",
+                            email_message.uid,
                         )
 
                         email_message.is_read = True
                         email_message.save(update_fields=["is_read"])
                         logger.debug(
-                            f"Marked email message object {email_message.pk} as read in the database."
+                            "Marked email message object %s as read in the database.",
+                            email_message.pk,
                         )
                         messages.success(request, _("Email marked as read."))
             except Exception as e:
                 logger.error(
-                    f"Error marking email message {email_message.pk} as read: {str(e)}",
+                    "Error marking email message %s as read: %s",
+                    email_message.pk,
+                    str(e),
                     exc_info=True,
                 )
                 messages.error(
@@ -365,6 +380,96 @@ class SentAdmin(EmailMessageAdmin):
         ]
         total = custom_urls + urls
         return total
+
+    # TODO: implement send mail functionality only on save not update
+    # def save_model(self, request, obj, form, change):
+    #     """
+    #     This method is called when saving an EmailMessage in the admin interface.
+
+    #     It ensures that the email is only sent when the object is created, not updated.
+    #     """
+    #     is_new = not change  # True if this is a new object
+
+    #     super().save_model(request, obj, form, change)  # Save the object first
+
+    #     if is_new:
+    #         # Trigger the email sending process only if the object is new
+    #         self.send_email(obj)
+
+    # def send_email(self, email_message):
+    #     current_site = Site.objects.get_current()
+    #     # Generate a Message-ID if not present
+    #     if not email_message.message_id:
+    #         email_message.message_id = make_msgid(domain=current_site.domain)
+
+    #     # Ensure the date is set
+    #     if not email_message.date:
+    #         email_message.date = now()
+
+    #     # Create the email message
+    #     subject = email_message.subject
+    #     from_email = email_message.from_address
+    #     to = email_message.to_address.split(",")
+    #     cc = email_message.cc_address.split(",") if email_message.cc_address else []
+    #     bcc = email_message.bcc_address.split(",") if email_message.bcc_address else []
+
+    #     msg = EmailMultiAlternatives(
+    #         subject=subject,
+    #         body=email_message.plain_body,
+    #         from_email=from_email,
+    #         to=to,
+    #         cc=cc,
+    #         bcc=bcc,
+    #     )
+
+    #     # Check if the body contains HTML content
+    #     if email_message.html_body:
+    #         msg.attach_alternative(email_message.html_body, "text/html")
+
+    #     # Attach any files
+    #     for attachment in email_message.attachments.all():
+    #         file_content = attachment.file.read()
+    #         mime_type, _ = mimetypes.guess_type(attachment.filename)
+    #         if not mime_type:
+    #             # Default to binary stream if MIME type can't be guessed
+    #             mime_type = "application/octet-stream"
+    #         msg.attach(attachment.filename, file_content, mime_type)
+
+    #     # Additional headers
+    #     msg.extra_headers = {
+    #         "Message-ID": email_message.message_id,
+    #         "X-MS-Has-Attach": "yes" if email_message.has_attachments() else "no",
+    #         "X-Priority": "3",
+    #         "X-Auto-Response-Suppress": "All",
+    #         "MIME-Version": "1.0",
+    #         "Content-Type": "multipart/mixed",
+    #     }
+
+    #     # Send the email
+    #     msg.send()
+
+    #     # Save raw email to IMAP Sent folder and get raw email data
+    #     raw_email = msg.message().as_string()
+    #     email_message.raw = raw_email.encode("utf-8")  # Ensure raw email is bytes
+
+    #     with IMAPClient(imap_host, imap_username, imap_password) as client:
+    #         with IMAPMailboxService(client) as mailbox:
+    #             folder = Mailbox.objects.get(folder_type=StandardMailboxNames.SENT)
+    #             mailbox.select(folder.name)
+    #             mailbox.save_sent(
+    #                 email_message.raw, folder.name
+    #             )  # Send raw email as bytes
+
+    #     # Save headers to email_message
+    #     parsed_email = email.message_from_bytes(email_message.raw)
+    #     headers = {k: v for k, v in parsed_email.items()}
+    #     email_message.headers = headers
+
+    #     # Calculate and save email size
+    #     email_message.size = len(email_message.raw)
+
+    #     # Save email message with updated fields
+    #     email_message.save()
 
 
 @admin.register(Junk)
@@ -403,7 +508,6 @@ class JunkAdmin(EmailMessageAdmin):
 
 @admin.register(Trash)
 class TrashAdmin(EmailMessageAdmin):
-
     mailbox_type = StandardMailboxNames.TRASH
 
     actions = (download_as_eml, restore_from_trash)
@@ -444,7 +548,6 @@ class TrashAdmin(EmailMessageAdmin):
     def clear_trash(self, request: HttpRequest):
         start_time = time.time()
         try:
-
             with IMAPClient(imap_host, imap_username, imap_password) as client:
                 trash_mailbox = Mailbox.objects.get(
                     folder_type=StandardMailboxNames.TRASH
@@ -484,12 +587,13 @@ class TrashAdmin(EmailMessageAdmin):
             self.message_user(
                 request,
                 _(
-                    "Failed to clear trash. Please try again. Task completed in {:.2f} seconds."
+                    "Failed to clear trash. Please try again. "
+                    "Task completed in {:.2f} seconds."
                 ).format(runtime),
                 messages.ERROR,
             )
-
+        application_label = self.model._meta.app_label
         change_list_url = reverse(
-            f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_changelist"
+            f"admin:{application_label}_{self.model._meta.model_name}_changelist"
         )
         return HttpResponseRedirect(change_list_url)

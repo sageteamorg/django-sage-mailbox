@@ -1,7 +1,7 @@
 from django.conf import settings
 
-from sage_mailbox.exc import IMAPConfigurationError
 from sage_mailbox.constants import DEFAULTS
+from sage_mailbox.exc import IMAPConfigurationError
 
 
 class IMAPSettings:

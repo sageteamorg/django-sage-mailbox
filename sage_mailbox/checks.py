@@ -1,7 +1,8 @@
 import imaplib
 import logging
 
-from django.core.checks import Error, register
+from django.conf import settings
+from django.core.checks import Error, Warning, register
 
 from sage_mailbox.conf import imap_settings
 from sage_mailbox.exc import (
@@ -17,11 +18,12 @@ logger = logging.getLogger(__name__)
 @register()
 def check_imap_config(app_configs, **kwargs):
     """
-    Check the IMAP configuration for the application.
+    Check the IMAP configuration and other required settings for the application.
 
-    This function verifies that all required IMAP settings are present and attempts to
-    establish a connection to the IMAP server to ensure the settings are correct.
-    Any errors encountered during these checks are returned.
+    This function verifies that all required IMAP settings, Django apps, and certain
+    settings are present. It also attempts to establish a connection to the IMAP server
+    to ensure the settings are correct. Any errors encountered during these checks
+    are returned.
 
     Parameters
     ----------
@@ -32,8 +34,9 @@ def check_imap_config(app_configs, **kwargs):
 
     Returns
     -------
-    list of Error
-        A list of Error objects representing any configuration or connection errors found.
+    list of Error or Warning
+        A list of Error or Warning objects representing any configuration or connection
+        errors found.
 
     Raises
     ------
@@ -55,6 +58,45 @@ def check_imap_config(app_configs, **kwargs):
     """
     errors = []
 
+    # Check that required apps are installed
+    required_apps = ["django.contrib.sites", "django_jsonform"]
+    for app in required_apps:
+        if app not in settings.INSTALLED_APPS:
+            errors.append(
+                Error(
+                    f"The required app '{app}' is not installed.",
+                    id="sage_integration.E001",
+                )
+            )
+
+    # Check that SITE_ID is set
+    if not hasattr(settings, "SITE_ID"):
+        errors.append(
+            Error(
+                "SITE_ID is not set in settings.",
+                id="sage_integration.E002",
+            )
+        )
+    elif not isinstance(settings.SITE_ID, int):
+        errors.append(
+            Error(
+                "SITE_ID must be an integer.",
+                id="sage_integration.E003",
+            )
+        )
+
+    # Check that upload-related settings are set
+    upload_settings = ["MEDIA_URL", "MEDIA_ROOT", "FILE_UPLOAD_HANDLERS"]
+    for setting in upload_settings:
+        if not hasattr(settings, setting):
+            errors.append(
+                Error(
+                    f"The required setting '{setting}' is not set.",
+                    id="sage_integration.E008",
+                )
+            )
+
+    # Function to get IMAP settings
     def get_imap_settings():
         return {
             "IMAP_SERVER_DOMAIN": imap_settings.IMAP_SERVER_DOMAIN,
@@ -63,6 +105,7 @@ def check_imap_config(app_configs, **kwargs):
             "IMAP_SERVER_PASSWORD": imap_settings.IMAP_SERVER_PASSWORD,
         }
 
+    # Function to check missing configurations
     def check_missing_configs(settings):
         missing = [key for key, value in settings.items() if not value]
         if missing:
@@ -70,6 +113,7 @@ def check_imap_config(app_configs, **kwargs):
                 f"IMAP configuration settings are missing: {', '.join(missing)}."
             )
 
+    # Check IMAP configuration settings
     try:
         imap_settings_dict = get_imap_settings()
         check_missing_configs(imap_settings_dict)

@@ -1,7 +1,7 @@
 import re
 
-from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
 from django.utils.deconstruct import deconstructible
 from django.utils.translation import gettext_lazy as _
 
@@ -19,13 +19,17 @@ class FolderNameValidator:
     """
 
     length_error_message = "Folder name must be between 1 and 255 characters long."
-    character_error_message = "Folder name contains invalid characters. Allowed characters are letters, numbers, underscore, hyphen, and dot. Spaces are not allowed."
+    character_error_message = (
+        "Folder name contains invalid characters. Allowed characters are letters, "
+        "numbers, underscore, hyphen, and dot. Spaces are not allowed."
+    )
     code_length = "folder_name_length"
     code_character = "folder_name_invalid_character"
-    regex = re.compile(r"^[\w.-]+$")
+    # regex to disallow leading/trailing hyphens or underscore at the end or start
+    regex = re.compile(r"^(?![-_])[a-zA-Z0-9._-]+(?<![-_])$")
 
     def __call__(self, value):
-        if not (1 <= len(value) <= 255):
+        if not 1 <= len(value) <= 255:
             raise ValidationError(self.length_error_message, code=self.code_length)
 
         if not self.regex.match(value):
@@ -65,12 +69,12 @@ class CommaSeparatedEmailValidator:
             if email:
                 try:
                     validate_email(email)
-                except ValidationError:
+                except ValidationError as exc:
                     raise ValidationError(
                         self.message.format(email=email),
                         code=self.code,
                         params={"email": email},
-                    )
+                    ) from exc
 
     def __eq__(self, other):
         return (

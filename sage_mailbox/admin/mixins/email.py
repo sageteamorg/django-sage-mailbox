@@ -24,7 +24,10 @@ class EmailSyncMixin:
             path(
                 "sync-emails/",
                 self.admin_site.admin_view(self.sync_emails),
-                name=f"{self.model._meta.app_label}_{self.model._meta.model_name}_sync",
+                name=(
+                    f"{self.model._meta.app_label}_"
+                    f"{self.model._meta.model_name}_sync"
+                ),
             ),
         ]
         return custom_urls + urls
@@ -35,10 +38,14 @@ class EmailSyncMixin:
         try:
             mailbox = Mailbox.objects.get(folder_type=self.mailbox_name)
         except ObjectDoesNotExist:
-            message = f"The {self.mailbox_name} mailbox does not exist. Please sync mailboxes first, then sync emails."
+            message = (
+                f"The {self.mailbox_name} mailbox does not exist. "
+                "Please sync mailboxes first, then sync emails."
+            )
             messages.add_message(request, messages.WARNING, message)
             change_list_url = reverse(
-                f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_changelist"
+                f"admin:{self.model._meta.app_label}_"
+                f"{self.model._meta.model_name}_changelist"
             )
             return redirect(change_list_url)
 
@@ -51,10 +58,14 @@ class EmailSyncMixin:
         created_emails = result.get("created_emails", 0)
         created_attachments = result.get("created_attachments", 0)
 
-        message = f"Email synchronization completed: {created_emails} emails and {created_attachments} attachments created in {runtime:.2f} seconds."
+        message = (
+            f"Email synchronization completed: {created_emails} emails and "
+            f"{created_attachments} attachments created in {runtime:.2f} seconds."
+        )
         messages.add_message(request, messages.INFO, message)
 
         change_list_url = reverse(
-            f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_changelist"
+            f"admin:{self.model._meta.app_label}_"
+            f"{self.model._meta.model_name}_changelist"
         )
         return redirect(change_list_url)

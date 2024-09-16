@@ -25,8 +25,8 @@ class EmailMessageManager(models.Manager):
     def flagged(self):
         return self.get_queryset().flagged()
 
-    def has_cc(self):
-        return self.get_queryset().has_cc()
+    # def has_cc(self):
+    #     return self.get_queryset().has_cc()
 
-    def has_bcc(self):
-        return self.get_queryset().has_bcc()
+    # def has_bcc(self):
+    #     return self.get_queryset().has_bcc()

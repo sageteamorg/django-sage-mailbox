@@ -17,7 +17,6 @@ from sage_mailbox.models.mailbox import Mailbox, StandardMailboxNames
 logger = logging.getLogger(__name__)
 
 
-
 @admin.action(description=_("Move selected emails to trash"))
 @transaction.atomic
 def move_to_trash(modeladmin, request, queryset):
@@ -39,7 +38,7 @@ def move_to_trash(modeladmin, request, queryset):
                     MessageSet(str(email.uid)), trash_mailbox.name
                 )
                 emails_to_delete.append(email)
-                logger.debug(f"Moved email with UID {email.uid} to trash.")
+                logger.debug("Moved email with UID %s to trash.", email.uid)
 
             queryset.model.objects.filter(
                 id__in=[email.id for email in emails_to_delete]
@@ -51,18 +50,22 @@ def move_to_trash(modeladmin, request, queryset):
         messages.success(
             request,
             _(
-                "Successfully moved {} emails to trash and deleted them from the database in {:.2f} seconds."
+                "Successfully moved {} emails to trash and deleted them "
+                "from the database in {:.2f} seconds."
             ).format(len(emails_to_delete), runtime),
         )
 
-    except Exception as e:
+    except Exception as exc:
         end_time = time.time()
         runtime = end_time - start_time
-        logger.error(f"Error moving email messages to trash: {str(e)}", exc_info=True)
+        logger.error(
+            "Error moving email messages to trash: %s", str(exc), exc_info=True
+        )
         messages.error(
             request,
             _(
-                "Failed to move some emails to trash. Please try again. Task completed in {:.2f} seconds."
+                "Failed to move some emails to trash. Please try again. "
+                "Task completed in {:.2f} seconds."
             ).format(runtime),
         )
         transaction.set_rollback(True)
@@ -88,15 +91,16 @@ def mark_as_read(modeladmin, request, queryset):
                     status, data = client.uid(
                         "STORE", str(email_message.uid), "+FLAGS", "\\Seen"
                     )
-                    logger.debug(f"Marked email with UID {email_message.uid} as SEEN.")
+                    logger.debug("Marked email with UID %s as SEEN.", email_message.uid)
 
                     email_message.is_read = True
                     email_messages_to_update.append(email_message)
                     logger.debug(
-                        f"Prepared to mark email message object {email_message.pk} as read in the database."
+                        "Prepared to mark email message "
+                        "object %s as read in the database.",
+                        email_message.pk,
                     )
 
-        # Bulk update all email messages at once
         queryset.model.objects.bulk_update(email_messages_to_update, ["is_read"])
         logger.debug("Bulk updated all email messages to read status in the database.")
 
@@ -109,14 +113,17 @@ def mark_as_read(modeladmin, request, queryset):
             ),
         )
 
-    except Exception as e:
+    except Exception as exc:
         end_time = time.time()
         runtime = end_time - start_time
-        logger.error(f"Error marking email messages as read: {str(e)}", exc_info=True)
+        logger.error(
+            "Error marking email messages as read: %s", str(exc), exc_info=True
+        )
         messages.error(
             request,
             _(
-                "Failed to mark some emails as read. Please try again. Task completed in {:.2f} seconds."
+                "Failed to mark some emails as read. Please try again. "
+                "Task completed in {:.2f} seconds."
             ).format(runtime),
         )
         transaction.set_rollback(True)
@@ -133,7 +140,6 @@ def mark_as_unread(modeladmin, request, queryset):
     password = settings.IMAP_SERVER_PASSWORD
 
     try:
-
         with IMAPClient(host, username, password) as client:
             mailbox = IMAPMailboxUIDService(client)
 
@@ -145,16 +151,17 @@ def mark_as_unread(modeladmin, request, queryset):
                         "STORE", str(email_message.uid), FlagCommand.REMOVE, Flag.SEEN
                     )
                     logger.debug(
-                        f"Unmarked email with Message-ID {email_message.uid} as SEEN."
+                        "Unmarked email with Message-ID %s as SEEN.", email_message.uid
                     )
 
                     email_message.is_read = False
                     email_messages_to_update.append(email_message)
                     logger.debug(
-                        f"Prepared to mark email message object {email_message.pk} as unread in the database."
+                        "Prepared to mark email message "
+                        "object %s as unread in the database.",
+                        email_message.pk,
                     )
 
-        # Bulk update all email messages at once
         queryset.model.objects.bulk_update(email_messages_to_update, ["is_read"])
         logger.debug(
             "Bulk updated all email messages to unread status in the database."
@@ -169,14 +176,17 @@ def mark_as_unread(modeladmin, request, queryset):
             ),
         )
 
-    except Exception as e:
+    except Exception as exc:
         end_time = time.time()
         runtime = end_time - start_time
-        logger.error(f"Error marking email messages as unread: {str(e)}", exc_info=True)
+        logger.error(
+            "Error marking email messages as unread: %s", str(exc), exc_info=True
+        )
         messages.error(
             request,
             _(
-                "Failed to mark some emails as unread. Please try again. Task completed in {:.2f} seconds."
+                "Failed to mark some emails as unread. Please try again. "
+                "Task completed in {:.2f} seconds."
             ).format(runtime),
         )
         transaction.set_rollback(True)
@@ -203,16 +213,17 @@ def mark_as_flagged(modeladmin, request, queryset):
                         "STORE", str(email_message.uid), "+FLAGS", "\\Flagged"
                     )
                     logger.debug(
-                        f"Marked email with UID {email_message.uid} as FLAGGED."
+                        "Marked email with UID %s as FLAGGED.", email_message.uid
                     )
 
                     email_message.is_flagged = True
                     email_messages_to_update.append(email_message)
                     logger.debug(
-                        f"Prepared to mark email message object {email_message.pk} as flagged in the database."
+                        "Prepared to mark email message "
+                        "object %s as flagged in the database.",
+                        email_message.pk,
                     )
 
-        # Bulk update all email messages at once
         queryset.model.objects.bulk_update(email_messages_to_update, ["is_flagged"])
         logger.debug(
             "Bulk updated all email messages to flagged status in the database."
@@ -227,16 +238,17 @@ def mark_as_flagged(modeladmin, request, queryset):
             ),
         )
 
-    except Exception as e:
+    except Exception as exc:
         end_time = time.time()
         runtime = end_time - start_time
         logger.error(
-            f"Error marking email messages as flagged: {str(e)}", exc_info=True
+            "Error marking email messages as flagged: %s", str(exc), exc_info=True
         )
         messages.error(
             request,
             _(
-                "Failed to mark some emails as flagged. Please try again. Task completed in {:.2f} seconds."
+                "Failed to mark some emails as flagged. Please try again. "
+                "Task completed in {:.2f} seconds."
             ).format(runtime),
         )
         transaction.set_rollback(True)
@@ -253,7 +265,6 @@ def mark_as_unflagged(modeladmin, request, queryset):
     password = settings.IMAP_SERVER_PASSWORD
 
     try:
-
         with IMAPClient(host, username, password) as client:
             mailbox = IMAPMailboxUIDService(client)
 
@@ -264,16 +275,17 @@ def mark_as_unflagged(modeladmin, request, queryset):
                         "STORE", str(email_message.uid), "-FLAGS", "\\Flagged"
                     )
                     logger.debug(
-                        f"Unmarked email with UID {email_message.uid} as FLAGGED."
+                        "Unmarked email with UID %s as FLAGGED.", email_message.uid
                     )
 
                     email_message.is_flagged = False
                     email_messages_to_update.append(email_message)
                     logger.debug(
-                        f"Prepared to mark email message object {email_message.pk} as unflagged in the database."
+                        "Prepared to mark email message "
+                        "object %s as unflagged in the database.",
+                        email_message.pk,
                     )
 
-        # Bulk update all email messages at once
         queryset.model.objects.bulk_update(email_messages_to_update, ["is_flagged"])
         logger.debug(
             "Bulk updated all email messages to unflagged status in the database."
@@ -288,16 +300,17 @@ def mark_as_unflagged(modeladmin, request, queryset):
             ),
         )
 
-    except Exception as e:
+    except Exception as exc:
         end_time = time.time()
         runtime = end_time - start_time
         logger.error(
-            f"Error marking email messages as unflagged: {str(e)}", exc_info=True
+            "Error marking email messages as unflagged: %s", str(exc), exc_info=True
         )
         messages.error(
             request,
             _(
-                "Failed to mark some emails as unflagged. Please try again. Task completed in {:.2f} seconds."
+                "Failed to mark some emails as unflagged. Please try again. "
+                "Task completed in {:.2f} seconds."
             ).format(runtime),
         )
         transaction.set_rollback(True)
@@ -308,30 +321,26 @@ def download_as_eml(modeladmin, request, queryset):
     start_time = time.time()
     email_files = []
 
-    host = settings.IMAP_SERVER_DOMAIN
-    username = settings.IMAP_SERVER_USER
-    password = settings.IMAP_SERVER_PASSWORD
-
     try:
         for email_message in queryset:
             if email_message.raw:
                 email_files.append((f"{email_message.uid}.eml", email_message.raw))
                 logger.debug(
-                    f"Added raw data for email with Message-ID {email_message.uid}."
+                    "Added raw data for email with Message-ID %s.", email_message.uid
                 )
 
         if len(email_files) == 1:
             response = HttpResponse(email_files[0][1], content_type="message/rfc822")
-            response["Content-Disposition"] = (
-                f'attachment; filename="{email_files[0][0]}"'
-            )
-            logger.debug(f"Prepared single EML file for download: {email_files[0][0]}")
+            response[
+                "Content-Disposition"
+            ] = f'attachment; filename="{email_files[0][0]}"'
+            logger.debug("Prepared single EML file for download: %s", email_files[0][0])
         else:
             zip_buffer = BytesIO()
             with zipfile.ZipFile(zip_buffer, "w") as zip_file:
                 for file_name, eml_data in email_files:
                     zip_file.writestr(file_name, eml_data)
-                    logger.debug(f"Added {file_name} to zip file.")
+                    logger.debug("Added %s to zip file.", file_name)
 
             zip_buffer.seek(0)
             response = HttpResponse(zip_buffer, content_type="application/zip")
@@ -350,8 +359,8 @@ def download_as_eml(modeladmin, request, queryset):
         )
         return response
 
-    except Exception as e:
-        logger.error(f"An error occurred while preparing the EML files: {str(e)}")
+    except Exception as exc:
+        logger.error("An error occurred while preparing the EML files: %s", str(exc))
         messages.error(request, _("An error occurred while preparing the EML files."))
         return None
 
@@ -360,7 +369,7 @@ def download_as_eml(modeladmin, request, queryset):
 @transaction.atomic
 def restore_from_trash(modeladmin, request, queryset):
     start_time = time.time()
-    emails_to_delete = []
+    emails_to_restore = []
 
     host = settings.IMAP_SERVER_DOMAIN
     username = settings.IMAP_SERVER_USER
@@ -377,11 +386,11 @@ def restore_from_trash(modeladmin, request, queryset):
                 imap_mailbox_service.uid_restore(
                     MessageSet(str(email.uid)), trash_mailbox.name, inbox_mailbox.name
                 )
-                emails_to_delete.append(email)
-                logger.debug(f"Restored email with UID {email.uid} to inbox.")
+                emails_to_restore.append(email)
+                logger.debug("Restored email with UID %s to inbox.", email.uid)
 
             queryset.model.objects.filter(
-                id__in=[email.id for email in emails_to_delete]
+                id__in=[email.id for email in emails_to_restore]
             ).delete()
             logger.debug("Deleted restored email messages from the database.")
 
@@ -390,20 +399,22 @@ def restore_from_trash(modeladmin, request, queryset):
         messages.success(
             request,
             _(
-                "Successfully restored emails to inbox and deleted {} emails from trash in {:.2f} seconds."
-            ).format(len(emails_to_delete), runtime),
+                "Successfully restored {} emails to inbox and deleted "
+                "them from trash in {:.2f} seconds."
+            ).format(len(emails_to_restore), runtime),
         )
 
-    except Exception as e:
+    except Exception as exc:
         end_time = time.time()
         runtime = end_time - start_time
         logger.error(
-            f"Error restoring email messages from trash: {str(e)}", exc_info=True
+            "Error restoring email messages from trash: %s", str(exc), exc_info=True
         )
         messages.error(
             request,
             _(
-                "Failed to restore and delete some emails from trash. Please try again. Task completed in {:.2f} seconds."
+                "Failed to restore and delete some emails from trash. "
+                "Please try again. Task completed in {:.2f} seconds."
             ).format(runtime),
         )
         transaction.set_rollback(True)

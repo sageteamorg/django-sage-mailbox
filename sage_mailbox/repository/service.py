@@ -20,6 +20,7 @@ from sage_mailbox.utils import sanitize_filename
 logger = logging.getLogger(__name__)
 
 
+# pylint: disable= C0103
 class EmailSyncService:
     def __init__(self, host: str, username: str, password: str):
         self.host = host
@@ -32,7 +33,7 @@ class EmailSyncService:
                 with IMAPMailboxService(client) as mailbox:
                     mailbox.select(folder)
 
-                    # Retrieve the mailbox object or create a new one if it doesn't exist
+                    # Retrieve mailbox object or create a new one if it doesn't exist
                     mailbox_obj, _ = DjangoMailbox.objects.get_or_create(
                         name__contains=folder
                     )
@@ -62,8 +63,8 @@ class EmailSyncService:
                         return result
 
             return {"created_emails": 0, "created_attachments": 0}
-        except Exception as e:
-            logger.error(f"Error fetching and saving emails: {e}")
+        except Exception as exc:
+            logger.error(f"Error fetching and saving emails: {exc}")
             return {"created_emails": 0, "created_attachments": 0}
 
     def save_emails_to_db(self, emails, mailbox):

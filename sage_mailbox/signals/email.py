@@ -1,22 +1,23 @@
+import email
 import logging
 import mimetypes
-import email
 from email.utils import make_msgid
 
 from django.conf import settings
+from django.contrib.sites.models import Site
+from django.core.mail import EmailMultiAlternatives
 from django.db import transaction
+from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils.timezone import now
-from django.contrib.sites.models import Site
-from django.db.models.signals import post_save
-from django.core.mail import EmailMultiAlternatives
-
 from sage_imap.services import IMAPClient, IMAPMailboxService
 
 from sage_mailbox.models import EmailMessage, Sent
 from sage_mailbox.models.mailbox import Mailbox, StandardMailboxNames
 
 logger = logging.getLogger(__name__)
+
+# pylint: disable=W0613, C0103
 
 
 @receiver(post_save, sender=EmailMessage)
@@ -60,7 +61,8 @@ def send_email(email_message):
         file_content = attachment.file.read()
         mime_type, _ = mimetypes.guess_type(attachment.filename)
         if not mime_type:
-            mime_type = "application/octet-stream"  # Default to binary stream if MIME type can't be guessed
+            # Default to binary stream if MIME type can't be guessed
+            mime_type = "application/octet-stream"
         msg.attach(attachment.filename, file_content, mime_type)
 
     # Additional headers

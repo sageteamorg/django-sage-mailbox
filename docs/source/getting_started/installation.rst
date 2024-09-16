@@ -58,11 +58,10 @@ To use `django-sage-mailbox`, add it to your `INSTALLED_APPS` in the Django sett
 .. code-block:: python
 
     INSTALLED_APPS = [
+        # other packages
         "django.contrib.sites",
-        ...
         "sage_mailbox",
         "django_jsonform",
-        ...
     ]
 
 Additional Configuration for IMAP and Email
@@ -95,12 +94,12 @@ Configure your IMAP and email settings in `settings.py`:
 
    # Custom Email Headers
    DEFAULT_EMAIL_HEADERS = {
-      "X-Mailer": "sage_imap",
-      "List-Unsubscribe": "<mailto:unsubscribe@example.com>",
-      "Return-Path": "<bounce@example.com>",
-      "Reply-To": "replyto@example.com",
-      "X-Priority": "3",
-      "X-Report-Abuse-To": "abuse@example.com",
-      "X-Spamd-Result": "default",
-      "X-Auto-Response-Suppress": "All",
+       "X-Mailer": "sage_imap",
+       "List-Unsubscribe": "<mailto:unsubscribe@example.com>",
+       "Return-Path": "<bounce@example.com>",
+       "Reply-To": "replyto@example.com",
+       "X-Priority": "3",
+       "X-Report-Abuse-To": "abuse@example.com",
+       "X-Spamd-Result": "default",
+       "X-Auto-Response-Suppress": "All",
    }
