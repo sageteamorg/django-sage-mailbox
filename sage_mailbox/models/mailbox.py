@@ -81,7 +81,7 @@ class Mailbox(TimestampMixin):
         if not self.pk:
             self.folder_type = map_to_standard_name(self.name)
 
-        super(Mailbox, self).save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
     def __str__(self):
-        return self.name
+        return str(self.name)

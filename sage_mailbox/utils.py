@@ -2,9 +2,7 @@ import re
 
 
 def sanitize_filename(filename):
-    """
-    Sanitize the filename to ensure it's safe to use in the file system.
-    """
+    """Sanitize the filename to ensure it's safe to use in the file system."""
     # Decode if the filename is encoded
     if filename.startswith("=?"):
         from email.header import decode_header

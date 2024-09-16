@@ -9,7 +9,6 @@ from django.http import HttpRequest, HttpResponseRedirect
 from django.http.response import HttpResponse
 from django.urls import path, reverse
 from django.utils.translation import gettext_lazy as _
-
 from sage_imap.exceptions import (
     IMAPFolderExistsError,
     IMAPFolderNotFoundError,
@@ -21,17 +20,15 @@ from sage_mailbox.admin.actions import delete_selected
 from sage_mailbox.models.mailbox import Mailbox, StandardMailboxNames
 
 # IMAP configuration
-imap_host = getattr(settings, 'IMAP_SERVER_DOMAIN', None)
-imap_username = getattr(settings, 'IMAP_SERVER_USER', None)
-imap_password = getattr(settings, 'IMAP_SERVER_PASSWORD', None)
+imap_host = getattr(settings, "IMAP_SERVER_DOMAIN", None)
+imap_username = getattr(settings, "IMAP_SERVER_USER", None)
+imap_password = getattr(settings, "IMAP_SERVER_PASSWORD", None)
 
 
 @admin.register(Mailbox)
 class MailboxAdmin(admin.ModelAdmin):
     change_list_template = "admin/mailbox/change_list.html"
-    list_display = (
-        "name", "slug", "folder_type", "created_at", "modified_at"
-    )
+    list_display = ("name", "slug", "folder_type", "created_at", "modified_at")
     search_fields = ("name",)
     ordering = ("name",)
     list_per_page = 25
@@ -78,8 +75,7 @@ class MailboxAdmin(admin.ModelAdmin):
                             raise ValidationError(str(e))
                     super().save_model(request, obj, form, change)
                 messages.success(
-                    request,
-                    f'The Mailbox "{new_name}" was added successfully.'
+                    request, f'The Mailbox "{new_name}" was added successfully.'
                 )
         except ValidationError as e:
             messages.error(request, f"Error: {e.message}")
@@ -109,7 +105,7 @@ class MailboxAdmin(admin.ModelAdmin):
                         messages.warning(
                             request,
                             f'The Mailbox "{obj.name}" was deleted from admin, '
-                            'but it did not exist on the IMAP server.'
+                            "but it did not exist on the IMAP server.",
                         )
                     except IMAPFolderOperationError as e:
                         raise ValidationError(str(e))
@@ -118,7 +114,7 @@ class MailboxAdmin(admin.ModelAdmin):
                         messages.success(
                             request,
                             f'The Mailbox "{obj.name}" was deleted successfully '
-                            'from both admin and IMAP server.'
+                            "from both admin and IMAP server.",
                         )
         except ValidationError as e:
             messages.error(request, f"Error: {e.message}")
@@ -138,7 +134,7 @@ class MailboxAdmin(admin.ModelAdmin):
                             messages.warning(
                                 request,
                                 f'The mailbox "{obj.name}" was deleted from admin, '
-                                'but it did not exist on the IMAP server.'
+                                "but it did not exist on the IMAP server.",
                             )
                         except IMAPFolderOperationError as e:
                             raise ValidationError(str(e))
@@ -148,7 +144,7 @@ class MailboxAdmin(admin.ModelAdmin):
                 messages.success(
                     request,
                     "The selected Mailboxes were deleted successfully "
-                    "from both admin and IMAP server."
+                    "from both admin and IMAP server.",
                 )
         except ValidationError as e:
             messages.error(request, f"Error: {e.message}")
@@ -168,7 +164,9 @@ class MailboxAdmin(admin.ModelAdmin):
             return HttpResponseRedirect(request.path)
         elif "_save" in request.POST:
             post_url = reverse(
-                "admin:%s_%s_changelist" % (self.opts.app_label, self.opts.model_name),
+                "admin:{}_{}_changelist".format(
+                    self.opts.app_label, self.opts.model_name
+                ),
                 current_app=self.admin_site.name,
             )
             return HttpResponseRedirect(post_url)
@@ -176,7 +174,8 @@ class MailboxAdmin(admin.ModelAdmin):
 
     def response_change(self, request, obj):
         """
-        Handles the HTTP response after changing an existing object in the Django admin.
+        Handles the HTTP response after changing an existing object in the Django
+        admin.
 
         Similar to `response_add`, this method prevents the issue of double flash messages.
         """
@@ -188,7 +187,9 @@ class MailboxAdmin(admin.ModelAdmin):
             return HttpResponseRedirect(request.path)
         elif "_save" in request.POST:
             post_url = reverse(
-                "admin:%s_%s_changelist" % (self.opts.app_label, self.opts.model_name),
+                "admin:{}_{}_changelist".format(
+                    self.opts.app_label, self.opts.model_name
+                ),
                 current_app=self.admin_site.name,
             )
             return HttpResponseRedirect(post_url)
@@ -198,7 +199,7 @@ class MailboxAdmin(admin.ModelAdmin):
         self, request: HttpRequest, obj_display: str, obj_id: int
     ) -> HttpResponse:
         post_url = reverse(
-            "admin:%s_%s_changelist" % (self.opts.app_label, self.opts.model_name),
+            "admin:{}_{}_changelist".format(self.opts.app_label, self.opts.model_name),
             current_app=self.admin_site.name,
         )
         return HttpResponseRedirect(post_url)
@@ -207,17 +208,14 @@ class MailboxAdmin(admin.ModelAdmin):
         return request.META.get("HTTP_REFERER", "/admin/")
 
     def sync_folders(self, request):
-        """
-        Synchronizes the mailboxes between the IMAP server and the Django admin.
-        """
+        """Synchronizes the mailboxes between the IMAP server and the Django admin."""
         try:
             with IMAPClient(imap_host, imap_username, imap_password) as client:
                 folder_service = IMAPFolderService(client)
                 folders = folder_service.list_folders()
                 for folder_name in folders:
                     Mailbox.objects.update_or_create(
-                        name=folder_name,
-                        defaults={"slug": folder_name.lower()}
+                        name=folder_name, defaults={"slug": folder_name.lower()}
                     )
                 messages.success(request, "Mailboxes synchronized successfully.")
         except Exception as e:

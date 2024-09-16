@@ -2,9 +2,7 @@ import re
 
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-
 from django_jsonform.models.fields import JSONField
-
 from sage_imap.models.email import EmailMessage as EmailMessageDC
 
 from sage_mailbox.models.mixins import TimestampMixin
@@ -166,7 +164,7 @@ class EmailMessage(TimestampMixin):
         from sage_mailbox.models import Mailbox
 
         if not self.mailbox_id:
-            sent_mailbox, created = Mailbox.objects.get_or_create(name="Sent")
+            sent_mailbox, _ = Mailbox.objects.get_or_create(name="Sent")
             self.mailbox = sent_mailbox
         super().save(*args, **kwargs)
 
@@ -174,7 +172,9 @@ class EmailMessage(TimestampMixin):
     def from_dataclass(cls, email_dc: EmailMessageDC):
         from sage_mailbox.models import Attachment, Flag
 
-        """Convert a dataclass instance to a Django model instance."""
+        """
+        Convert a dataclass instance to a Django model instance.
+        """
         email = cls(
             uid=email_dc.uid,
             message_id=email_dc.message_id,
@@ -287,10 +287,15 @@ class EmailMessage(TimestampMixin):
         }
 
     def __repr__(self):
-        return f"<EmailMessage(subject={self.subject!r}, from_address={self.from_address!r}, date={self.date!r})>"
+        return (
+            f"<EmailMessage("
+            f"subject={self.subject!r}, "
+            f"from_address={self.from_address!r}, "
+            f"date={self.date!r})>"
+        )
 
     def __str__(self):
-        return self.subject
+        return str(self.subject)
 
 
 class Draft(EmailMessage):

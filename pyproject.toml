@@ -1,23 +1,28 @@
+[build-system]
+build-backend = "poetry.core.masonry.api"
+requires = [ "poetry-core>=1" ]
+
 [tool.poetry]
 name = "django-sage-mailbox"
 version = "0.1.0"
 description = "A Django package for mailbox client integration."
-authors = ["Sepehr Akbarzadeh <sepehr@sageteam.org>"]
+authors = [ "Sepehr Akbarzadeh <sepehr@sageteam.org>" ]
 readme = "README.md"
 license = "MIT"
-keywords = ["django", "email", "imap", "mailbox", "sageteam", "django-packages"]
+keywords = [ "django", "email", "imap", "mailbox", "sageteam", "django-packages" ]
 repository = "https://github.com/sageteamorg/django-sage-mailbox"
 
-classifiers=[
-    "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
-    "Intended Audience :: Developers",
-    "Framework :: Django",
+classifiers = [
+  "Development Status :: 2 - Alpha",
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Intended Audience :: Developers",
+  "Framework :: Django",
 ]
 
 packages = [
-    { include = "sage_mailbox" }
+  { include = "sage_mailbox" },
 ]
 
 [tool.poetry.urls]
@@ -26,21 +31,18 @@ packages = [
 
 [tool.poetry.dependencies]
 python = "^3.12"
-setuptools = "^70.2.0"
-wheel = "^0.43.0"
-twine = "^5.1.1"
 django = "^5.0.7"
 python-sage-imap = "^0.4.2"
 django-jsonform = "^2.22.0"
 python-dateutil = "^2.9.0.post0"
 django-autoslug = "^1.9.9"
+bandit = { extras = [ "toml" ], version = "^1.7.9" }
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.4.2"
 isort = "^5.13.2"
 mypy = "^1.10.1"
 pytest = "^8.2.2"
-flake8 = "^7.1.0"
 tox = "^4.15.1"
 coverage = "^7.5.4"
 pre-commit = "^3.7.1"
@@ -49,33 +51,162 @@ pylint = "^3.2.5"
 pytest-cov = "^5.0.0"
 commitizen = "^3.27.0"
 docformatter = "^1.7.5"
-types-setuptools = "^70.2.0.20240704"
 django-stubs = "^5.0.2"
 sphinx-rtd-theme = "^2.0.0"
+pylint-django = "^2.5.5"
+pytest-django = "^4.8.0"
+model-bakery = "^1.19.5"
 
 [tool.black]
 line-length = 88
-target-version = ['py38']
 exclude = '''
 /(
     \.git
-    | \.hg
-    | \.mypy_cache
-    | \.tox
-    | \.venv
-    | _build
-    | buck-out
-    | build
-    | dist
-    | docs
+  | \.venv
+  | build
+  | dist
+  | migrations
+  | venv
+  | env
+  | __pycache__
+  | static
+  | media
+  | node_modules
+  | env
+  | kernel
+  | \.mypy_cache
+  | \.pytest_cache
+  | .*\.egg-info
 )/
 '''
+
+[tool.ruff]
+line-length = 88
+exclude = [
+  "*.egg-info/*",
+  ".git/*",
+  ".mypy_cache/*",
+  ".pytest_cache/*",
+  ".venv/*",
+  "__pycache__/*",
+  "apps.py",
+  "build/*",
+  "dist/*",
+  "migrations/*",
+  "sage_shop/warehouse/schemas/*",
+  "tests",
+  "venv/*",
+]
+
+lint.select = [
+  "B",   # Bugbear codes for potential issues
+  "C90", # Custom error codes
+  "E",   # PEP8 error codes
+  "F",   # PyFlakes error codes
+  "S",   # Security checks
+]
+lint.ignore = [
+  "E203", # Ignore whitespace before ':', ';', or '#'
+  "E501", # Ignore line length issues (lines longer than 88 characters)
+]
 
 [tool.isort]
 profile = "black"
 line_length = 88
-known_first_party = ["django_sage_mailbox"]
-skip = ["docs"]
+skip = [
+  "venv",
+  ".venv",
+  "build",
+  "dist",
+  ".git",
+  "__pycache__",
+  "*.egg-info",
+  ".mypy_cache",
+  ".pytest_cache",
+  "migrations",
+  "static",
+  "media",
+  "node_modules",
+  "env",
+  "kernel",
+]
+
+[tool.pylint]
+disable = [
+  "C0114", # Missing module docstring
+  "C0115", # Missing class docstring
+  "C0116", # Missing function or method docstring
+  "E1101", # Instance of 'Foo' has no 'bar' member (Django dynamic attributes)
+  "W0212", # Access to a protected member _foo of a client class
+  "R0903", # Too few public methods (for Django models)
+  "R0801", # Similar Codes
+]
+max-line-length = 88
+ignore = [
+  "migrations",
+  "*/apps.py",
+  ".venv/*",
+  "build/*",
+  "dist/*",
+  ".git/*",
+  "__pycache__/*",
+  "*.egg-info/*",
+  ".mypy_cache/*",
+  ".pytest_cache/*",
+  "tests",
+]
+load-plugins = [
+  "pylint.extensions.docparams",
+]
+good-names = [
+  "qs", # QuerySet abbreviation
+  "pk", # Primary key abbreviation
+  "id", # Identifier
+]
+suggestion-mode = true
+const-rgx = "([A-Z_][A-Z0-9_]*)|(__.*__)"
+attr-rgx = "[a-z_][a-z0-9_]{2,30}$"
+variable-rgx = "[a-z_][a-z0-9_]{2,30}$"
+argument-rgx = "[a-z_][a-z0-9_]{2,30}$"
+method-rgx = "[a-z_][a-z0-9_]{2,30}$"
+function-rgx = "[a-z_][a-z0-9_]{2,30}$"
+class-rgx = "[A-Z_][a-zA-Z0-9]+$"
+module-rgx = "(([a-z_][a-z0-9_]*)|(__.*__))$"
+
+[tool.pytest.ini_options]
+addopts = "--cov --cov-report=term-missing --cov-report=html --cov-fail-under=90"
+DJANGO_SETTINGS_MODULE = "kernel.settings"
+python_files = [ "tests.py", "test_*.py" ]
+testpaths = [ "tests" ]
+norecursedirs = [
+  "migrations",
+  "static",
+  "media",
+  "node_modules",
+  "env",
+  "venv",
+  ".venv",
+  "dist",
+  "build",
+  "kernel",
+]
+
+[tool.coverage.run]
+omit = [
+  "*/migrations/*",
+  "kernel/*",
+  "*/apps.py",
+  "manage.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+  "pragma: no cover",
+  "if self\\.debug",
+  "raise AssertionError",
+  "if 0:",
+  "if __name__ == .__main__.:",
+]
 
 [tool.mypy]
 mypy_path = "stubs"
@@ -93,12 +224,26 @@ exclude = '''
 
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "0.1.0"
+version = "0.2.0"
 
-[tool.pytest.ini_options]
-addopts = "--strict-markers"
-testpaths = ["tests"]
+[tool.commitizen.settings]
+increment_types = [ "feat", "fix" ]
 
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+[tool.bandit]
+targets = [ "./sage_shop" ]
+exclude_dirs = [
+  "tests",
+  "migrations",
+]
+severity = "medium"
+confidence = "medium"
+max_lines = 500
+progress = true
+reports = true
+output_format = "screen"
+output_file = "bandit_report.txt"
+include = [ "B101", "B102" ]
+exclude_tests = [ "B301", "B302" ]
+
+[tool.bandit.plugins]
+B104 = { check_typed_list = true }

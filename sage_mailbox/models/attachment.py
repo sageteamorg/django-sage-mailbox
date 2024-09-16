@@ -1,6 +1,5 @@
 import mimetypes
 
-from django.conf import settings
 from django.core.files.storage import FileSystemStorage
 from django.db import models
 from django.utils.translation import gettext_lazy as _
@@ -50,10 +49,11 @@ class Attachment(TimestampMixin):
         db_table = "sage_attachment"
         db_table_comment = "Model representing an attachment to an email message."
 
+    # pylint: disable= C0103
     def save(self, *args, **kwargs):
         if not self.content_type and self.file:
             self.content_type, _ = mimetypes.guess_type(self.file.name)
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return self.filename or "Attachment"
+        return str(self.filename) or "Attachment"
