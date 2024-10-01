@@ -4,7 +4,7 @@ requires = [ "poetry-core>=1" ]
 
 [tool.poetry]
 name = "django-sage-mailbox"
-version = "0.1.1"
+version = "0.2.0"
 description = "A Django package for mailbox client integration."
 authors = [ "Sepehr Akbarzadeh <sepehr@sageteam.org>" ]
 readme = "README.md"
@@ -13,7 +13,6 @@ keywords = [ "django", "email", "imap", "mailbox", "sageteam", "django-packages"
 repository = "https://github.com/sageteamorg/django-sage-mailbox"
 
 classifiers = [
-  "Development Status :: 2 - Alpha",
   "Programming Language :: Python :: 3",
   "License :: OSI Approved :: MIT License",
   "Operating System :: OS Independent",
