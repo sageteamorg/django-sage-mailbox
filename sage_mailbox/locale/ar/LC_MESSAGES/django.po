@@ -1,0 +1,509 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+# 
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-10-07 12:58+0330\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 "
+"&& n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5;\n"
+#: .\sage_mailbox\admin\actions\email.py:20
+msgid "Move selected emails to trash"
+msgstr ""
+
+#: .\sage_mailbox\admin\actions\email.py:53
+msgid ""
+"Successfully moved {} emails to trash and deleted them from the database in "
+"{:.2f} seconds."
+msgstr ""
+
+#: .\sage_mailbox\admin\actions\email.py:67
+msgid ""
+"Failed to move some emails to trash. Please try again. Task completed in "
+"{:.2f} seconds."
+msgstr ""
+
+#: .\sage_mailbox\admin\actions\email.py:74
+msgid "Mark selected emails as read"
+msgstr ""
+
+#: .\sage_mailbox\admin\actions\email.py:111
+msgid "Successfully marked {} emails as read in {:.2f} seconds."
+msgstr ""
+
+#: .\sage_mailbox\admin\actions\email.py:125
+msgid ""
+"Failed to mark some emails as read. Please try again. Task completed in "
+"{:.2f} seconds."
+msgstr ""
+
+#: .\sage_mailbox\admin\actions\email.py:132
+msgid "Mark selected emails as unread"
+msgstr ""
+
+#: .\sage_mailbox\admin\actions\email.py:174
+msgid "Successfully marked {} emails as unread in {:.2f} seconds."
+msgstr ""
+
+#: .\sage_mailbox\admin\actions\email.py:188
+msgid ""
+"Failed to mark some emails as unread. Please try again. Task completed in "
+"{:.2f} seconds."
+msgstr ""
+
+#: .\sage_mailbox\admin\actions\email.py:195
+msgid "Mark selected emails as flagged"
+msgstr ""
+
+#: .\sage_mailbox\admin\actions\email.py:236
+msgid "Successfully marked {} emails as flagged in {:.2f} seconds."
+msgstr ""
+
+#: .\sage_mailbox\admin\actions\email.py:250
+msgid ""
+"Failed to mark some emails as flagged. Please try again. Task completed in "
+"{:.2f} seconds."
+msgstr ""
+
+#: .\sage_mailbox\admin\actions\email.py:257
+msgid "Mark selected emails as unflagged"
+msgstr ""
+
+#: .\sage_mailbox\admin\actions\email.py:298
+msgid "Successfully marked {} emails as unflagged in {:.2f} seconds."
+msgstr ""
+
+#: .\sage_mailbox\admin\actions\email.py:312
+msgid ""
+"Failed to mark some emails as unflagged. Please try again. Task completed in "
+"{:.2f} seconds."
+msgstr ""
+
+#: .\sage_mailbox\admin\actions\email.py:319
+msgid "Download selected emails as EML"
+msgstr ""
+
+#: .\sage_mailbox\admin\actions\email.py:356
+msgid "Successfully prepared download for {} emails in {:.2f} seconds."
+msgstr ""
+
+#: .\sage_mailbox\admin\actions\email.py:364
+msgid "An error occurred while preparing the EML files."
+msgstr ""
+
+#: .\sage_mailbox\admin\actions\email.py:368
+msgid "Restore selected emails from trash to inbox"
+msgstr ""
+
+#: .\sage_mailbox\admin\actions\email.py:402
+msgid ""
+"Successfully restored {} emails to inbox and deleted them from trash in "
+"{:.2f} seconds."
+msgstr ""
+
+#: .\sage_mailbox\admin\actions\email.py:416
+msgid ""
+"Failed to restore and delete some emails from trash. Please try again. Task "
+"completed in {:.2f} seconds."
+msgstr ""
+
+#: .\sage_mailbox\admin\actions\mailbox.py:15
+#, python-format
+msgid "Delete selected %(verbose_name_plural)s"
+msgstr ""
+
+#: .\sage_mailbox\admin\actions\mailbox.py:56
+#, python-format
+msgid "Cannot delete %(name)s"
+msgstr ""
+
+#: .\sage_mailbox\admin\actions\mailbox.py:58
+msgid "Are you sure?"
+msgstr ""
+
+#: .\sage_mailbox\admin\email.py:96
+msgid ""
+"Search is available for the following fields:<br><ul><li><strong>Subject</"
+"strong>: The subject line of the email.</li><li><strong>From Address</"
+"strong>: The email address of the sender.</li><li><strong>To Address</"
+"strong>: The email addresses of the primary recipients.</li><li><strong>CC "
+"Address</strong>: The email addresses of the carbon copy recipients.</"
+"li><li><strong>BCC Address</strong>: The email addresses of the blind carbon "
+"copy recipients.</li><li><strong>Message ID</strong>: The unique identifier "
+"of the email message.</li></ul>"
+msgstr ""
+
+#: .\sage_mailbox\admin\email.py:178
+msgid "Recently Created"
+msgstr ""
+
+#: .\sage_mailbox\admin\email.py:179
+msgid "Not Recent"
+msgstr ""
+
+#: .\sage_mailbox\admin\email.py:185
+msgid "Has Attachment"
+msgstr ""
+
+#: .\sage_mailbox\admin\email.py:190
+msgid "Total Attachments"
+msgstr ""
+
+#: .\sage_mailbox\admin\email.py:194 .\sage_mailbox\models\email.py:47
+msgid "From Address"
+msgstr ""
+
+#: .\sage_mailbox\admin\email.py:201
+msgid "Message-ID"
+msgstr ""
+
+#: .\sage_mailbox\admin\email.py:343
+msgid "Email marked as read."
+msgstr ""
+
+#: .\sage_mailbox\admin\email.py:352
+msgid "Failed to mark the email as read on the IMAP server."
+msgstr ""
+
+#: .\sage_mailbox\admin\email.py:577
+msgid "Successfully permanently deleted emails in {:.2f} seconds."
+msgstr ""
+
+#: .\sage_mailbox\admin\email.py:590
+msgid ""
+"Failed to clear trash. Please try again. Task completed in {:.2f} seconds."
+msgstr ""
+
+#: .\sage_mailbox\admin\mailbox.py:38
+msgid "Change Log"
+msgstr ""
+
+#: .\sage_mailbox\admin\mailbox.py:63
+msgid "The folder to be renamed does not exist."
+msgstr ""
+
+#: .\sage_mailbox\admin\mailbox.py:72
+msgid "A folder with this name already exists."
+msgstr ""
+
+#: .\sage_mailbox\apps.py:8 .\sage_mailbox\models\email.py:114
+#: .\sage_mailbox\models\mailbox.py:68
+msgid "Mailbox"
+msgstr ""
+
+#: .\sage_mailbox\models\attachment.py:15
+msgid "Email Message"
+msgstr ""
+
+#: .\sage_mailbox\models\attachment.py:16
+msgid "The email message to which this attachment belongs."
+msgstr ""
+
+#: .\sage_mailbox\models\attachment.py:23
+msgid "File"
+msgstr ""
+
+#: .\sage_mailbox\models\attachment.py:24
+msgid "The file attached to the email."
+msgstr ""
+
+#: .\sage_mailbox\models\attachment.py:29
+msgid "Filename"
+msgstr ""
+
+#: .\sage_mailbox\models\attachment.py:30
+msgid "The original filename of the attachment."
+msgstr ""
+
+#: .\sage_mailbox\models\attachment.py:35
+msgid "Content Type"
+msgstr ""
+
+#: .\sage_mailbox\models\attachment.py:36
+msgid "The MIME type of the attachment."
+msgstr ""
+
+#: .\sage_mailbox\models\attachment.py:44
+msgid "Attachment"
+msgstr ""
+
+#: .\sage_mailbox\models\attachment.py:45
+msgid "Attachments"
+msgstr ""
+
+#: .\sage_mailbox\models\email.py:25
+msgid "IMAP UID"
+msgstr ""
+
+#: .\sage_mailbox\models\email.py:26
+msgid "Unique identifier of the IMAP server."
+msgstr ""
+
+#: .\sage_mailbox\models\email.py:36
+msgid "Message-ID Header"
+msgstr ""
+
+#: .\sage_mailbox\models\email.py:37
+msgid "Message ID from the email client's header."
+msgstr ""
+
+#: .\sage_mailbox\models\email.py:42
+msgid "Subject"
+msgstr ""
+
+#: .\sage_mailbox\models\email.py:43
+msgid "Subject of the email."
+msgstr ""
+
+#: .\sage_mailbox\models\email.py:48
+msgid "Sender's email address."
+msgstr ""
+
+#: .\sage_mailbox\models\email.py:52
+msgid "To Address"
+msgstr ""
+
+#: .\sage_mailbox\models\email.py:54
+msgid "Recipient email addresses (comma-separated)."
+msgstr ""
+
+#: .\sage_mailbox\models\email.py:59
+msgid "CC Address"
+msgstr ""
+
+#: .\sage_mailbox\models\email.py:61
+msgid "CC recipient email addresses (comma-separated)."
+msgstr ""
+
+#: .\sage_mailbox\models\email.py:66
+msgid "BCC Address"
+msgstr ""
+
+#: .\sage_mailbox\models\email.py:68
+msgid "BCC recipient email addresses (comma-separated)."
+msgstr ""
+
+#: .\sage_mailbox\models\email.py:74
+msgid "Date"
+msgstr ""
+
+#: .\sage_mailbox\models\email.py:75
+msgid "Date the email was sent (ISO format)."
+msgstr ""
+
+#: .\sage_mailbox\models\email.py:81
+msgid "Raw Email Data"
+msgstr ""
+
+#: .\sage_mailbox\models\email.py:82
+msgid "Raw binary data of the email."
+msgstr ""
+
+#: .\sage_mailbox\models\email.py:86
+msgid "Plain Body"
+msgstr ""
+
+#: .\sage_mailbox\models\email.py:87
+msgid "Plain text body of the email."
+msgstr ""
+
+#: .\sage_mailbox\models\email.py:91
+msgid "HTML Body"
+msgstr ""
+
+#: .\sage_mailbox\models\email.py:92
+msgid "HTML body of the email."
+msgstr ""
+
+#: .\sage_mailbox\models\email.py:98
+msgid "Flags"
+msgstr ""
+
+#: .\sage_mailbox\models\email.py:99
+msgid "Flags associated with the email."
+msgstr ""
+
+#: .\sage_mailbox\models\email.py:106
+msgid "Headers"
+msgstr ""
+
+#: .\sage_mailbox\models\email.py:107
+msgid "Email headers in JSON format."
+msgstr ""
+
+#: .\sage_mailbox\models\email.py:115
+msgid "Mailbox to which this email belongs."
+msgstr ""
+
+#: .\sage_mailbox\models\email.py:120
+msgid "Indicates if the email has been read."
+msgstr ""
+
+#: .\sage_mailbox\models\email.py:122
+msgid "Is Read"
+msgstr ""
+
+#: .\sage_mailbox\models\email.py:126
+msgid "Indicates if the email has been flagged."
+msgstr ""
+
+#: .\sage_mailbox\models\email.py:128
+msgid "Is Flagged"
+msgstr ""
+
+#: .\sage_mailbox\models\email.py:134
+msgid "Size"
+msgstr ""
+
+#: .\sage_mailbox\models\email.py:135
+msgid "Size of the email in bytes."
+msgstr ""
+
+#: .\sage_mailbox\models\email.py:142 .\sage_mailbox\models\email.py:143
+#: .\sage_mailbox\models\mailbox.py:15
+msgid "Inbox"
+msgstr ""
+
+#: .\sage_mailbox\models\email.py:156
+msgid "Can mark email as read"
+msgstr ""
+
+#: .\sage_mailbox\models\email.py:157
+msgid "Can mark email as unread"
+msgstr ""
+
+#: .\sage_mailbox\models\email.py:158
+msgid "Can flag email"
+msgstr ""
+
+#: .\sage_mailbox\models\email.py:159
+msgid "Can unflag email"
+msgstr ""
+
+#: .\sage_mailbox\models\email.py:160
+msgid "Can download email data"
+msgstr ""
+
+#: .\sage_mailbox\models\email.py:306 .\sage_mailbox\models\email.py:307
+msgid "Draft"
+msgstr ""
+
+#: .\sage_mailbox\models\email.py:315 .\sage_mailbox\models\email.py:316
+#: .\sage_mailbox\models\mailbox.py:16
+msgid "Sent"
+msgstr ""
+
+#: .\sage_mailbox\models\email.py:324 .\sage_mailbox\models\email.py:325
+#: .\sage_mailbox\models\mailbox.py:20
+msgid "Trash"
+msgstr ""
+
+#: .\sage_mailbox\models\email.py:333 .\sage_mailbox\models\email.py:334
+#: .\sage_mailbox\models\mailbox.py:19
+msgid "Junk"
+msgstr ""
+
+#: .\sage_mailbox\models\email.py:342 .\sage_mailbox\models\email.py:343
+msgid "Archive"
+msgstr ""
+
+#: .\sage_mailbox\models\mailbox.py:17
+msgid "Drafts"
+msgstr ""
+
+#: .\sage_mailbox\models\mailbox.py:18
+msgid "Spam"
+msgstr ""
+
+#: .\sage_mailbox\models\mailbox.py:21
+msgid "Custom"
+msgstr ""
+
+#: .\sage_mailbox\models\mailbox.py:41
+msgid "Name"
+msgstr ""
+
+#: .\sage_mailbox\models\mailbox.py:42
+msgid "The unique name of the mailbox."
+msgstr ""
+
+#: .\sage_mailbox\models\mailbox.py:47
+msgid "Folder Type"
+msgstr ""
+
+#: .\sage_mailbox\models\mailbox.py:50
+msgid "The standardized type of the mailbox."
+msgstr ""
+
+#: .\sage_mailbox\models\mailbox.py:56
+msgid "Slug"
+msgstr ""
+
+#: .\sage_mailbox\models\mailbox.py:63
+msgid "The unique slug for the mailbox, generated from the name."
+msgstr ""
+
+#: .\sage_mailbox\models\mailbox.py:69
+msgid "Mailboxes"
+msgstr ""
+
+#: .\sage_mailbox\models\mixins\timestamp.py:6
+msgid "Created At"
+msgstr ""
+
+#: .\sage_mailbox\models\mixins\timestamp.py:7
+msgid "Modified At"
+msgstr ""
+
+#: .\sage_mailbox\templates\admin\email\change_list.html:10
+msgid "Send Email"
+msgstr ""
+
+#: .\sage_mailbox\templates\admin\email\change_list.html:26
+msgid "Sync Trash"
+msgstr ""
+
+#: .\sage_mailbox\templates\admin\email\change_list.html:36
+msgid "Clear Trash"
+msgstr ""
+
+#: .\sage_mailbox\templates\admin\email\change_list.html:47
+msgid "Restore Trash"
+msgstr ""
+
+#: .\sage_mailbox\templates\admin\email\change_list.html:58
+msgid "Sync Sent"
+msgstr ""
+
+#: .\sage_mailbox\templates\admin\email\change_list.html:69
+msgid "Sync Junk"
+msgstr ""
+
+#: .\sage_mailbox\templates\admin\email\change_list.html:80
+msgid "Sync Emails"
+msgstr ""
+
+#: .\sage_mailbox\templates\admin\mailbox\change_list.html:10
+#, python-format
+msgid "Create %(name)s"
+msgstr ""
+
+#: .\sage_mailbox\templates\admin\mailbox\change_list.html:16
+msgid "Sync Mailboxes"
+msgstr ""
+
+#: .\sage_mailbox\validators.py:56
+#, python-brace-format
+msgid "'{email}' is not a valid email address."
+msgstr ""
