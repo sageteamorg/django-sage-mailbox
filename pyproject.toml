@@ -4,7 +4,7 @@ requires = [ "poetry-core>=1" ]
 
 [tool.poetry]
 name = "django-sage-mailbox"
-version = "0.2.0"
+version = "0.2.1"
 description = "A Django package for mailbox client integration."
 authors = [ "Sepehr Akbarzadeh <sepehr@sageteam.org>" ]
 readme = "README.md"
