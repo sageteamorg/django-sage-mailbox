@@ -29,8 +29,11 @@ packages = [
 "Issues" = "https://github.com/sageteamorg/django-sage-mailbox/issues"
 
 [tool.poetry.dependencies]
-python = "^3.12"
-django = "^5.0.7"
+python = ">=3.9,<4.0"
+django = [
+  { version = ">=4.2,<5.0", python = ">=3.8,<3.10" },
+  { version = ">=4.2,<5.3", python = ">=3.10" },      # Django 4.2 and 5.x for Python 3.10+
+]
 python-sage-imap = "^0.4.2"
 django-jsonform = "^2.22.0"
 python-dateutil = "^2.9.0.post0"
