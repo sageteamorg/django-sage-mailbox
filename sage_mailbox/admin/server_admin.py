@@ -15,6 +15,7 @@ from django.db.models import Count
 from sage_imap.services.client import ConnectionConfig
 from sage_imap import IMAPClient
 from sage_imap.exceptions import IMAPConnectionError, IMAPAuthenticationError
+from sage_imap.services.folder import IMAPFolderService
 
 from ..models import IMAPServer, SMTPServer, Mailbox
 from ..forms import IMAPServerForm, SMTPServerForm
@@ -57,8 +58,8 @@ class IMAPServerAdmin(BaseModelAdmin):
     )
     
     actions = [
-        'test_connection_sage_imap', 'sync_mailboxes_sage_imap', 
-        'get_server_capabilities', 'activate_servers', 'deactivate_servers'
+        'test_connection_sage_imap', 'debug_connection_status', 'comprehensive_connection_test', 
+        'sync_mailboxes_sage_imap', 'get_server_capabilities', 'activate_servers', 'deactivate_servers'
     ]
     
     def get_queryset(self, request):
@@ -92,14 +93,35 @@ class IMAPServerAdmin(BaseModelAdmin):
                 timeout=obj.timeout
             )
             
-            # Quick connection test
+            # Test connection by trying to perform a simple operation
             with IMAPClient.from_config(config) as client:
-                if client.is_connected():
-                    return format_html('<span style="color: green;">✓ Connected</span>')
-                else:
-                    return format_html('<span style="color: red;">✗ Disconnected</span>')
+                # Test connection by sending NOOP command
+                try:
+                    status, _ = client.noop()
+                    if status == "OK":
+                        # Connection is working, try to get folder count
+                        folder_count = 0
+                        try:
+                            folder_service = IMAPFolderService(client)
+                            folders = folder_service.list_folders()
+                            folder_count = len(folders) if folders else 0
+                        except Exception:
+                            pass
+                        
+                        return format_html(
+                            '<span style="color: green;" title="Folders: {}">✓ Connected</span>', 
+                            folder_count
+                        )
+                    else:
+                        return format_html('<span style="color: red;">✗ NOOP failed</span>')
+                except Exception as e:
+                    return format_html('<span style="color: red;" title="{}">✗ NOOP error</span>', str(e)[:50])
+        except IMAPConnectionError as e:
+            return format_html('<span style="color: red;" title="{}">✗ Connection</span>', str(e)[:50])
+        except IMAPAuthenticationError as e:
+            return format_html('<span style="color: red;" title="{}">✗ Auth</span>', str(e)[:50])
         except Exception as e:
-            return format_html('<span style="color: red;">✗ Error: {}</span>', str(e)[:50])
+            return format_html('<span style="color: red;" title="{}">✗ Error: {}</span>', type(e).__name__, str(e)[:40])
     
     connection_status.short_description = _('Connection Status')
     
@@ -118,16 +140,37 @@ class IMAPServerAdmin(BaseModelAdmin):
                 )
                 
                 with IMAPClient.from_config(config) as client:
-                    if client.is_connected():
-                        # Get server capabilities
-                        capabilities = client.get_capabilities()
-                        success_count += 1
-                        messages.success(
-                            request, 
-                            f"✓ {server.name}: Connected successfully. Capabilities: {', '.join(capabilities[:5])}"
-                        )
-                    else:
-                        messages.error(request, f"✗ {server.name}: Connection failed")
+                    # Test connection using NOOP command
+                    try:
+                        status, _ = client.noop()
+                        if status == "OK":
+                            # Try to get capabilities using imaplib method
+                            try:
+                                status, capabilities = client.capability()
+                                capability_list = capabilities[0].decode('utf-8').split() if capabilities else []
+                            except Exception:
+                                capability_list = []
+                            
+                            # Further test: try to list folders
+                            folder_count = 0
+                            try:
+                                folder_service = IMAPFolderService(client)
+                                folders = folder_service.list_folders()
+                                folder_count = len(folders) if folders else 0
+                            except Exception:
+                                pass
+                            
+                            success_count += 1
+                            messages.success(
+                                request, 
+                                f"✓ {server.name}: Connected successfully. "
+                                f"Capabilities: {len(capability_list)} found. "
+                                f"Folders: {folder_count}"
+                            )
+                        else:
+                            messages.error(request, f"✗ {server.name}: NOOP command failed")
+                    except Exception as e:
+                        messages.error(request, f"✗ {server.name}: Connection test failed - {e}")
                         
             except IMAPConnectionError as e:
                 messages.error(request, f"✗ {server.name}: Connection error - {e}")
@@ -140,6 +183,134 @@ class IMAPServerAdmin(BaseModelAdmin):
             messages.success(request, f"Successfully connected to {success_count} server(s)")
     
     test_connection_sage_imap.short_description = _('Test connection (sage_imap)')
+    
+    def debug_connection_status(self, request, queryset):
+        """Debug connection status method to show detailed error information."""
+        for server in queryset:
+            try:
+                config = ConnectionConfig(
+                    host=server.host,
+                    port=server.port,
+                    username=server.username,
+                    password=server.get_decrypted_password(),
+                    use_ssl=server.use_ssl,
+                    timeout=server.timeout
+                )
+                
+                messages.info(request, f"🔍 {server.name}: Starting connection debug...")
+                
+                with IMAPClient.from_config(config) as client:
+                    messages.info(request, f"🔍 {server.name}: IMAP client created successfully")
+                    
+                    # Test connection status using NOOP
+                    try:
+                        status, _ = client.noop()
+                        if status == "OK":
+                            messages.success(request, f"🔍 {server.name}: Connection test OK (NOOP passed)")
+                            
+                            # Test capabilities
+                            try:
+                                status, capabilities = client.capability()
+                                capability_list = capabilities[0].decode('utf-8').split() if capabilities else []
+                                messages.success(request, f"🔍 {server.name}: Capabilities OK ({len(capability_list)} found)")
+                            except Exception as e:
+                                messages.warning(request, f"🔍 {server.name}: Capabilities test failed: {e}")
+                        else:
+                            messages.error(request, f"🔍 {server.name}: NOOP command failed")
+                            continue
+                    except Exception as e:
+                        messages.error(request, f"🔍 {server.name}: Connection test failed - {e}")
+                        continue
+                    
+                    # Test folder service
+                    try:
+                        folder_service = IMAPFolderService(client)
+                        messages.info(request, f"🔍 {server.name}: IMAPFolderService created")
+                        
+                        folders = folder_service.list_folders()
+                        folder_count = len(folders) if folders else 0
+                        messages.success(request, f"🔍 {server.name}: Folders listed ({folder_count} found)")
+                    except Exception as e:
+                        messages.warning(request, f"🔍 {server.name}: Folder listing failed: {e}")
+                    
+                    messages.success(request, f"✅ {server.name}: Debug completed - connection should show as Connected")
+                        
+            except IMAPConnectionError as e:
+                messages.error(request, f"🔍 {server.name}: Connection error - {e}")
+            except IMAPAuthenticationError as e:
+                messages.error(request, f"🔍 {server.name}: Authentication error - {e}")
+            except Exception as e:
+                messages.error(request, f"🔍 {server.name}: Unexpected error - {type(e).__name__}: {e}")
+    
+    debug_connection_status.short_description = _('Debug connection status')
+    
+    def comprehensive_connection_test(self, request, queryset):
+        """Comprehensive connection test including capabilities, folders, and inbox access."""
+        success_count = 0
+        for server in queryset:
+            try:
+                config = ConnectionConfig(
+                    host=server.host,
+                    port=server.port,
+                    username=server.username,
+                    password=server.get_decrypted_password(),
+                    use_ssl=server.use_ssl,
+                    timeout=server.timeout
+                )
+                
+                with IMAPClient.from_config(config) as client:
+                    # Test 1: Connection status using NOOP
+                    try:
+                        status, _ = client.noop()
+                        if status != "OK":
+                            messages.error(request, f"✗ {server.name}: NOOP command failed")
+                            continue
+                    except Exception as e:
+                        messages.error(request, f"✗ {server.name}: Connection test failed - {e}")
+                        continue
+                    
+                    # Test 2: Get capabilities
+                    try:
+                        status, capabilities = client.capability()
+                        capability_list = capabilities[0].decode('utf-8').split() if capabilities else []
+                        capability_count = len(capability_list)
+                    except Exception:
+                        capability_count = 0
+                        capability_list = []
+                    
+                    # Test 3: List folders
+                    folder_service = IMAPFolderService(client)
+                    folders = folder_service.list_folders()
+                    folder_count = len(folders) if folders else 0
+                    
+                    # Test 4: Try to select INBOX
+                    try:
+                        folder_service.select_folder('INBOX')
+                        inbox_test = "✓ INBOX accessible"
+                    except Exception as e:
+                        inbox_test = f"✗ INBOX error: {str(e)[:30]}"
+                    
+                    success_count += 1
+                    messages.success(
+                        request, 
+                        f"✓ {server.name}: Comprehensive test passed\n"
+                        f"  • Connection: ✓ Active\n"
+                        f"  • Capabilities: {capability_count} found\n"
+                        f"  • Folders: {folder_count}\n"
+                        f"  • {inbox_test}"
+                    )
+                        
+            except IMAPConnectionError as e:
+                messages.error(request, f"✗ {server.name}: Connection error - {e}")
+            except IMAPAuthenticationError as e:
+                messages.error(request, f"✗ {server.name}: Authentication error - {e}")
+            except Exception as e:
+                messages.error(request, f"✗ {server.name}: Unexpected error - {e}")
+        
+        if success_count > 0:
+            messages.success(request, f"Comprehensive test passed for {success_count} server(s)")
+    
+    comprehensive_connection_test.short_description = _('Comprehensive connection test')
     
     def sync_mailboxes_sage_imap(self, request, queryset):
         """Sync mailboxes for selected servers using repository method."""
@@ -167,14 +338,27 @@ class IMAPServerAdmin(BaseModelAdmin):
                 )
                 
                 with IMAPClient.from_config(config) as client:
-                    capabilities = client.get_capabilities()
-                    messages.info(
-                        request, 
-                        f"📋 {server.name}: Capabilities - {', '.join(capabilities)}"
-                    )
+                    # Test connection first with NOOP
+                    try:
+                        status, _ = client.noop()
+                        if status == "OK":
+                            # Get capabilities
+                            try:
+                                status, capabilities = client.capability()
+                                capability_list = capabilities[0].decode('utf-8').split() if capabilities else []
+                                messages.info(
+                                    request, 
+                                    f"📋 {server.name}: Capabilities ({len(capability_list)}) - {', '.join(capability_list)}"
+                                )
+                            except Exception as e:
+                                messages.error(request, f"✗ {server.name}: Failed to get capabilities - {e}")
+                        else:
+                            messages.error(request, f"✗ {server.name}: NOOP command failed")
+                    except Exception as e:
+                        messages.error(request, f"✗ {server.name}: Connection test failed - {e}")
                     
             except Exception as e:
-                messages.error(request, f"✗ {server.name}: Failed to get capabilities - {e}")
+                messages.error(request, f"✗ {server.name}: Connection failed - {e}")
     
     get_server_capabilities.short_description = _('Get server capabilities')
     
