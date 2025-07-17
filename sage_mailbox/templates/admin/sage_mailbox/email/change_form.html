@@ -1,0 +1,43 @@
+{% extends "admin/change_form.html" %}
+{% load i18n admin_urls static %}
+
+{% block object-tools-items %}
+    {{ block.super }}
+    {% if original %}
+        <li>
+            <a href="{% url 'admin:sage_mailbox_email_reply' original.pk %}" class="historylink">
+                {% trans 'Reply' %}
+            </a>
+        </li>
+        <li>
+            <a href="{% url 'admin:sage_mailbox_email_forward' original.pk %}" class="historylink">
+                {% trans 'Forward' %}
+            </a>
+        </li>
+    {% endif %}
+{% endblock %}
+
+{% block extrahead %}
+    {{ block.super }}
+    <style>
+        .historylink {
+            background: #417690;
+            color: white;
+            padding: 10px 15px;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .historylink:hover {
+            background: #205067;
+            color: white;
+        }
+        .historylink:before {
+            content: "↩ ";
+        }
+        .historylink:nth-child(3):before {
+            content: "➤ ";
+        }
+    </style>
+{% endblock %} 

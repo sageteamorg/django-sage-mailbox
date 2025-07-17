@@ -1,0 +1,143 @@
+{% extends "admin/change_form.html" %}
+{% load i18n admin_urls static %}
+
+{% block title %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    <form method="post">
+        {% csrf_token %}
+        
+        <div>
+            <h1>{{ title }}</h1>
+            
+            <fieldset class="module aligned">
+                {{ form.as_p }}
+            </fieldset>
+            
+            <!-- Original Message (for replies and forwards) -->
+            {% if original_email %}
+                <fieldset class="module aligned">
+                    <h2>
+                        {% if action == 'reply' %}
+                            {% trans 'Original Message' %}
+                        {% elif action == 'forward' %}
+                            {% trans 'Forwarded Message' %}
+                        {% endif %}
+                    </h2>
+                    
+                    <div>
+                        <p><strong>{% trans 'From' %}:</strong> {{ original_email.from_name }} &lt;{{ original_email.from_address }}&gt;</p>
+                        <p><strong>{% trans 'Date' %}:</strong> {{ original_email.date|date:"Y-m-d H:i:s" }}</p>
+                        <p><strong>{% trans 'Subject' %}:</strong> {{ original_email.subject }}</p>
+                        <p><strong>{% trans 'To' %}:</strong> {{ original_email.to_addresses|join:", " }}</p>
+                        {% if original_email.cc_addresses %}
+                            <p><strong>{% trans 'CC' %}:</strong> {{ original_email.cc_addresses|join:", " }}</p>
+                        {% endif %}
+                        <hr>
+                        <div>{{ original_email.html_body|default:original_email.plain_body|linebreaks }}</div>
+                    </div>
+                </fieldset>
+            {% endif %}
+            
+            <!-- Submit Row -->
+            <div class="submit-row">
+                <input type="hidden" name="action" value="{{ action }}">
+                <input type="submit" value="{% if action == 'reply' %}{% trans 'Send Reply' %}{% elif action == 'forward' %}{% trans 'Send Forward' %}{% else %}{% trans 'Send Email' %}{% endif %}" class="default" />
+                <a href="{% url 'admin:sage_mailbox_email_changelist' %}" class="button">{% trans 'Cancel' %}</a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+// Apply template functionality
+function applyTemplate() {
+    const templateSelect = document.getElementById('id_template');
+    const selectedOption = templateSelect.options[templateSelect.selectedIndex];
+    
+    if (selectedOption.value) {
+        const templateId = selectedOption.value;
+        const subjectAttr = `data-template-${templateId}-subject`;
+        const htmlAttr = `data-template-${templateId}-html`;
+        const plainAttr = `data-template-${templateId}-plain`;
+        
+        const subject = selectedOption.getAttribute(subjectAttr);
+        const htmlBody = selectedOption.getAttribute(htmlAttr);
+        const plainBody = selectedOption.getAttribute(plainAttr);
+        
+        if (subject) {
+            document.getElementById('id_subject').value = subject;
+        }
+        if (htmlBody) {
+            document.getElementById('id_body_html').value = htmlBody;
+        }
+        if (plainBody) {
+            document.getElementById('id_body_plain').value = plainBody;
+        }
+    }
+}
+
+// Add apply template button after template field
+document.addEventListener('DOMContentLoaded', function() {
+    const templateField = document.getElementById('id_template');
+    if (templateField) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'button';
+        button.textContent = '{% trans "Apply Template" %}';
+        button.onclick = applyTemplate;
+        templateField.parentNode.appendChild(button);
+    }
+    
+    // Auto-sync HTML and Plain text (basic conversion)
+    const htmlField = document.getElementById('id_body_html');
+    const plainField = document.getElementById('id_body_plain');
+    
+    if (htmlField && plainField) {
+        htmlField.addEventListener('input', function() {
+            const htmlContent = this.value;
+            const plainContent = htmlContent
+                .replace(/<br\s*\/?>/gi, '\n')
+                .replace(/<\/p>/gi, '\n\n')
+                .replace(/<[^>]*>/g, '')
+                .replace(/&lt;/g, '<')
+                .replace(/&gt;/g, '>')
+                .replace(/&amp;/g, '&')
+                .trim();
+            
+            plainField.value = plainContent;
+        });
+    }
+    
+    // Priority indicator in subject
+    const priorityField = document.getElementById('id_priority');
+    const subjectField = document.getElementById('id_subject');
+    
+    if (priorityField && subjectField) {
+        priorityField.addEventListener('change', function() {
+            const priority = this.value;
+            let subject = subjectField.value;
+            
+            // Remove existing priority indicators
+            subject = subject.replace(/^\[(HIGH|LOW)\]\s*/, '');
+            
+            // Add new priority indicator
+            if (priority === 'high') {
+                subject = '[HIGH] ' + subject;
+            } else if (priority === 'low') {
+                subject = '[LOW] ' + subject;
+            }
+            
+            subjectField.value = subject;
+        });
+    }
+    
+    // Auto-focus on first field
+    const firstField = document.getElementById('id_smtp_server');
+    if (firstField) {
+        firstField.focus();
+    }
+});
+</script>
+{% endblock %} 

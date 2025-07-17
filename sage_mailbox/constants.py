@@ -1,7 +1,0 @@
-DEFAULTS = {
-    "IMAP_SERVER_DOMAIN": None,
-    "IMAP_SERVER_PORT": 993,
-    "IMAP_SERVER_USER": None,
-    "IMAP_SERVER_PASSWORD": None,
-    "IMAP_DEBUG_ENABLED": True,
-}

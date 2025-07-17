@@ -38,7 +38,7 @@ django-jsonform = "^2.22.0"
 python-dateutil = "^2.9.0.post0"
 django-autoslug = "^1.9.9"
 bandit = { extras = [ "toml" ], version = "^1.7.9" }
-python-sage-imap = "^0.4.8"
+cryptography = "^45.0.5"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.4.2"

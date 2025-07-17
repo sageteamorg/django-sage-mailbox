@@ -1,0 +1,13 @@
+{% extends "admin/change_list.html" %}
+{% load i18n admin_urls static %}
+
+{% block object-tools-items %}
+    <li>
+        <a href="{{ compose_url }}" class="addlink">
+            {% trans 'Compose Email' %}
+        </a>
+    </li>
+    {% comment %}
+    Regular Add button is disabled via has_add_permission
+    {% endcomment %}
+{% endblock %} 

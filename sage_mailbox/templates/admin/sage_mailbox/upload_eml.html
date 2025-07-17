@@ -1,0 +1,168 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block title %}{% trans "Upload EML Files" %} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block extrahead %}
+    {{ block.super }}
+    <style>
+        .form-row {
+            margin-bottom: 20px;
+        }
+        .form-row label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-row input[type="file"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .help-text {
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        .submit-row {
+            background: #f8f8f8;
+            padding: 10px;
+            border-top: 1px solid #ddd;
+            margin-top: 20px;
+        }
+        .alert {
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .alert-info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        .file-drop-zone {
+            border: 2px dashed #ccc;
+            border-radius: 4px;
+            padding: 20px;
+            text-align: center;
+            margin-top: 10px;
+            background-color: #f9f9f9;
+        }
+        .file-drop-zone.dragover {
+            border-color: #007cba;
+            background-color: #e6f3ff;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<h1>{% trans "Upload EML Files" %}</h1>
+
+<div class="alert alert-info">
+    <strong>{% trans "Instructions:" %}</strong>
+    <ul>
+        <li>{% trans "Select one or more .eml files to upload" %}</li>
+        <li>{% trans "You can also upload a .zip file containing multiple .eml files" %}</li>
+        <li>{% trans "Maximum file size: 25MB per file" %}</li>
+        <li>{% trans "Choose the target mailbox where emails will be uploaded" %}</li>
+    </ul>
+</div>
+
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    
+    <div class="form-row">
+        <label for="id_mailbox">{% trans "Target Mailbox:" %}</label>
+        {{ form.mailbox }}
+        {% if form.mailbox.help_text %}
+            <div class="help-text">{{ form.mailbox.help_text }}</div>
+        {% endif %}
+        {% if form.mailbox.errors %}
+            <div class="error">{{ form.mailbox.errors }}</div>
+        {% endif %}
+    </div>
+    
+    <div class="form-row">
+        <label for="id_eml_files">{% trans "EML Files:" %}</label>
+        {{ form.eml_files }}
+        {% if form.eml_files.help_text %}
+            <div class="help-text">{{ form.eml_files.help_text }}</div>
+        {% endif %}
+        {% if form.eml_files.errors %}
+            <div class="error">{{ form.eml_files.errors }}</div>
+        {% endif %}
+        
+        <div class="file-drop-zone" id="dropzone">
+            <p>{% trans "Drag and drop files here or click to select" %}</p>
+            <small>{% trans "Supported formats: .eml, .zip" %}</small>
+        </div>
+    </div>
+    
+    <div class="submit-row">
+        <input type="submit" value="{% trans 'Upload Files' %}" class="default" name="apply" />
+        <a href="{% url 'admin:sage_mailbox_mailbox_changelist' %}" class="button cancel-link">
+            {% trans "Cancel" %}
+        </a>
+    </div>
+</form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('id_eml_files');
+    
+    // Handle drag and drop
+    dropzone.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        dropzone.classList.add('dragover');
+    });
+    
+    dropzone.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        dropzone.classList.remove('dragover');
+    });
+    
+    dropzone.addEventListener('drop', function(e) {
+        e.preventDefault();
+        dropzone.classList.remove('dragover');
+        
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            fileInput.files = files;
+            updateFileList();
+        }
+    });
+    
+    // Handle click to select files
+    dropzone.addEventListener('click', function() {
+        fileInput.click();
+    });
+    
+    // Update file list when files are selected
+    fileInput.addEventListener('change', updateFileList);
+    
+    function updateFileList() {
+        const files = fileInput.files;
+        if (files.length > 0) {
+            let fileList = '<ul>';
+            for (let i = 0; i < files.length; i++) {
+                fileList += '<li>' + files[i].name + ' (' + formatFileSize(files[i].size) + ')</li>';
+            }
+            fileList += '</ul>';
+            dropzone.innerHTML = '<p><strong>{% trans "Selected files:" %}</strong></p>' + fileList;
+        } else {
+            dropzone.innerHTML = '<p>{% trans "Drag and drop files here or click to select" %}</p><small>{% trans "Supported formats: .eml, .zip" %}</small>';
+        }
+    }
+    
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+});
+</script>
+{% endblock %} 

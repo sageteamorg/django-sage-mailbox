@@ -1,0 +1,202 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block title %}{% trans "Clean Trash" %} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block extrahead %}
+    {{ block.super }}
+    <style>
+        .form-row {
+            margin-bottom: 20px;
+        }
+        .form-row label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-row input[type="number"] {
+            width: 100px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .help-text {
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        .submit-row {
+            background: #f8f8f8;
+            padding: 10px;
+            border-top: 1px solid #ddd;
+            margin-top: 20px;
+        }
+        .alert {
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .alert-warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+        .alert-danger {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .trash-stats {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+        }
+        .trash-stats h3 {
+            margin-top: 0;
+            color: #495057;
+        }
+        .trash-stats table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        .trash-stats th,
+        .trash-stats td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .trash-stats th {
+            background-color: #e9ecef;
+            font-weight: bold;
+        }
+        .danger-action {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .danger-action:hover {
+            background-color: #c82333;
+        }
+        .confirmation-checkbox {
+            margin-right: 10px;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<h1>{% trans "Clean Trash" %}</h1>
+
+<div class="alert alert-danger">
+    <strong>⚠️ {% trans "WARNING:" %}</strong>
+    {% trans "This action will permanently delete emails from trash and cannot be undone!" %}
+</div>
+
+<div class="trash-stats">
+    <h3>{% trans "Current Trash Statistics" %}</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>{% trans "Mailbox" %}</th>
+                <th>{% trans "Emails in Trash" %}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for stat in trash_stats %}
+            <tr>
+                <td>{{ stat.mailbox.name }} ({{ stat.mailbox.server.name }})</td>
+                <td>{{ stat.count }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+    
+    <div class="form-row">
+        <label for="id_days_old">{% trans "Delete emails older than (days):" %}</label>
+        {{ form.days_old }}
+        {% if form.days_old.help_text %}
+            <div class="help-text">{{ form.days_old.help_text }}</div>
+        {% endif %}
+        {% if form.days_old.errors %}
+            <div class="error">{{ form.days_old.errors }}</div>
+        {% endif %}
+        <div class="help-text">
+            {% trans "Only emails that have been in trash for more than this number of days will be permanently deleted." %}
+        </div>
+    </div>
+    
+    <div class="form-row">
+        <label>
+            {{ form.confirm }}
+            <span class="confirmation-checkbox">{% trans "I understand that this action cannot be undone" %}</span>
+        </label>
+        {% if form.confirm.help_text %}
+            <div class="help-text">{{ form.confirm.help_text }}</div>
+        {% endif %}
+        {% if form.confirm.errors %}
+            <div class="error">{{ form.confirm.errors }}</div>
+        {% endif %}
+    </div>
+    
+    <div class="alert alert-warning">
+        <strong>{% trans "What will happen:" %}</strong>
+        <ul>
+            <li>{% trans "Emails that have been in trash for more than the specified number of days will be permanently deleted" %}</li>
+            <li>{% trans "This action affects all selected mailboxes" %}</li>
+            <li>{% trans "Email attachments will also be permanently deleted" %}</li>
+            <li>{% trans "Deleted emails cannot be recovered" %}</li>
+        </ul>
+    </div>
+    
+    <div class="submit-row">
+        <input type="submit" value="{% trans 'Permanently Delete' %}" class="danger-action" name="apply" 
+               onclick="return confirm('{% trans "Are you sure you want to permanently delete these emails? This action cannot be undone!" %}')" />
+        <a href="{% url 'admin:sage_mailbox_mailbox_changelist' %}" class="button cancel-link">
+            {% trans "Cancel" %}
+        </a>
+    </div>
+</form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    const confirmCheckbox = document.getElementById('id_confirm');
+    const submitButton = form.querySelector('input[type="submit"]');
+    
+    // Enable/disable submit button based on confirmation checkbox
+    function updateSubmitButton() {
+        submitButton.disabled = !confirmCheckbox.checked;
+        submitButton.style.opacity = confirmCheckbox.checked ? '1' : '0.5';
+    }
+    
+    confirmCheckbox.addEventListener('change', updateSubmitButton);
+    updateSubmitButton(); // Initial state
+    
+    // Add extra confirmation for form submission
+    form.addEventListener('submit', function(e) {
+        if (!confirmCheckbox.checked) {
+            e.preventDefault();
+            alert('{% trans "Please confirm that you understand this action cannot be undone." %}');
+            return false;
+        }
+        
+        const daysOld = document.getElementById('id_days_old').value;
+        const confirmMessage = `{% trans "Are you sure you want to permanently delete all emails older than" %} ${daysOld} {% trans "days from trash? This action cannot be undone!" %}`;
+        
+        if (!confirm(confirmMessage)) {
+            e.preventDefault();
+            return false;
+        }
+    });
+});
+</script>
+{% endblock %} 
