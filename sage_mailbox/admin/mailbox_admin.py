@@ -14,10 +14,7 @@ from sage_imap.services.client import ConnectionConfig
 from sage_imap import IMAPClient, IMAPFolderService
 
 from ..models import Mailbox, Email
-from ..models.proxy_models import (
-    InboxMailbox, SentMailbox, DraftMailbox, TrashMailbox,
-    SpamMailbox, CustomFolderMailbox
-)
+# Proxy models removed as requested
 from ..utils import MailboxUtils
 from .base import BaseModelAdmin
 
@@ -128,17 +125,50 @@ class BaseMailboxAdmin(BaseModelAdmin):
                 
                 with IMAPClient.from_config(config) as client:
                     folder_service = IMAPFolderService(client)
-                    folder_info = folder_service.get_folder_info(mailbox.name)
                     
-                    info_text = f"📂 {mailbox.name}: "
-                    info_text += f"Selectable: {folder_info.selectable}, "
-                    info_text += f"Has Children: {folder_info.has_children}, "
-                    info_text += f"Attributes: {', '.join(folder_info.attributes)}"
-                    
-                    messages.info(request, info_text)
+                    # Get folder info using select method instead of list
+                    try:
+                        # Try to select the mailbox to get info
+                        result = client.select(mailbox.name, readonly=True)
+                        if result:
+                            status, message_count = result
+                            info_text = f"📂 {mailbox.name}: "
+                            info_text += f"Status: {status}, "
+                            info_text += f"Messages: {message_count}"
+                            
+                            # Try to get additional folder info
+                            try:
+                                folder_info = folder_service.get_folder_info(mailbox.name)
+                                info_text += f", Selectable: {folder_info.selectable}, "
+                                info_text += f"Has Children: {folder_info.has_children}, "
+                                info_text += f"Attributes: {', '.join(folder_info.attributes)}"
+                            except:
+                                # If detailed info fails, just show basic info
+                                pass
+                            
+                            messages.info(request, info_text)
+                        else:
+                            messages.warning(request, f"⚠ {mailbox.name}: Unable to select mailbox")
+                            
+                    except Exception as select_error:
+                        # If select fails, try to get basic folder list
+                        try:
+                            folders = folder_service.list_folders(pattern="*")
+                            matching_folders = [f for f in folders if f.name == mailbox.name]
+                            if matching_folders:
+                                folder = matching_folders[0]
+                                info_text = f"📂 {mailbox.name}: "
+                                info_text += f"Selectable: {folder.selectable}, "
+                                info_text += f"Has Children: {folder.has_children}, "
+                                info_text += f"Attributes: {', '.join(folder.attributes)}"
+                                messages.info(request, info_text)
+                            else:
+                                messages.warning(request, f"⚠ {mailbox.name}: Mailbox not found in folder list")
+                        except Exception as list_error:
+                            messages.error(request, f"✗ {mailbox.name}: Failed to get folder info - {list_error}")
                     
             except Exception as e:
-                messages.error(request, f"✗ {mailbox.name}: Failed to get info - {e}")
+                messages.error(request, f"✗ {mailbox.name}: Failed to connect - {e}")
     
     get_mailbox_info.short_description = _('Get mailbox info (sage_imap)')
     
@@ -165,69 +195,7 @@ class BaseMailboxAdmin(BaseModelAdmin):
 @admin.register(Mailbox)
 class MailboxAdmin(BaseMailboxAdmin):
     """Admin interface for Mailbox model with sage_imap integration."""
-    pass
+    autocomplete_fields = ['server', 'parent']
 
 
-# Specialized mailbox admin classes using proxy models
-@admin.register(InboxMailbox)
-class InboxMailboxAdmin(BaseMailboxAdmin):
-    """Admin interface for inbox mailboxes."""
-    
-    def get_queryset(self, request):
-        """Filter to show only inbox mailboxes."""
-        qs = super().get_queryset(request)
-        return qs.filter(name__icontains='inbox')
-
-
-@admin.register(SentMailbox)
-class SentMailboxAdmin(BaseMailboxAdmin):
-    """Admin interface for sent mailboxes."""
-    
-    def get_queryset(self, request):
-        """Filter to show only sent mailboxes."""
-        qs = super().get_queryset(request)
-        return qs.filter(name__icontains='sent')
-
-
-@admin.register(DraftMailbox)
-class DraftMailboxAdmin(BaseMailboxAdmin):
-    """Admin interface for draft mailboxes."""
-    
-    def get_queryset(self, request):
-        """Filter to show only draft mailboxes."""
-        qs = super().get_queryset(request)
-        return qs.filter(name__icontains='draft')
-
-
-@admin.register(TrashMailbox)
-class TrashMailboxAdmin(BaseMailboxAdmin):
-    """Admin interface for trash mailboxes."""
-    
-    def get_queryset(self, request):
-        """Filter to show only trash mailboxes."""
-        qs = super().get_queryset(request)
-        return qs.filter(name__icontains='trash')
-
-
-@admin.register(SpamMailbox)
-class SpamMailboxAdmin(BaseMailboxAdmin):
-    """Admin interface for spam mailboxes."""
-    
-    def get_queryset(self, request):
-        """Filter to show only spam mailboxes."""
-        qs = super().get_queryset(request)
-        return qs.filter(name__iregex=r'(spam|junk)')
-
-
-@admin.register(CustomFolderMailbox)
-class CustomFolderMailboxAdmin(BaseMailboxAdmin):
-    """Admin interface for custom folder mailboxes."""
-    
-    def get_queryset(self, request):
-        """Filter to show only custom folder mailboxes."""
-        qs = super().get_queryset(request)
-        return qs.filter(
-            is_default=False
-        ).exclude(
-            name__iregex=r'(inbox|sent|draft|trash|spam|junk)'
-        ) 
+# Proxy admin classes removed as requested - use filters instead 

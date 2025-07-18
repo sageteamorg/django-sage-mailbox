@@ -15,6 +15,41 @@ from .mixins import TimestampMixin
 from .email import Email
 
 
+def attachment_upload_to(instance, filename):
+    """
+    Generate upload path for attachments with better folder structure.
+    
+    Path format: attachments/{server_host}/{mailbox_name}/{year}/{month}/{day}/{filename}
+    This provides better organization by grouping attachments by server and mailbox.
+    """
+    import os
+    from datetime import datetime
+    
+    # Get current date
+    now = datetime.now()
+    
+    # Get server and mailbox info
+    server_host = instance.email.mailbox.server.host
+    mailbox_name = instance.email.mailbox.name
+    
+    # Clean server host and mailbox name for filesystem
+    server_host = server_host.replace('.', '_').replace(':', '_')
+    mailbox_name = mailbox_name.replace('/', '_').replace('\\', '_')
+    
+    # Build path
+    path = os.path.join(
+        'attachments',
+        server_host,
+        mailbox_name,
+        now.strftime('%Y'),
+        now.strftime('%m'),
+        now.strftime('%d'),
+        filename
+    )
+    
+    return path
+
+
 class Attachment(TimestampMixin):
     """
     File attachment associated with an email message.
@@ -90,7 +125,7 @@ class Attachment(TimestampMixin):
     )
     
     file_path = models.FileField(
-        upload_to="attachments/%Y/%m/%d/",
+        upload_to=attachment_upload_to,
         null=True,
         blank=True,
         verbose_name=_("File path"),

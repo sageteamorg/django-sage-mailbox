@@ -20,16 +20,32 @@ from django.utils.text import Truncator
 from django.utils.translation import gettext_lazy as _
 
 from ..models import Email
-from ..models.proxy_models import (
-    InboxEmail, SentEmail, DraftEmail, TrashEmail, 
-    SpamEmail, ImportantEmail, UnreadEmail, FlaggedEmail,
-    AttachmentEmail, RecentEmail, LargeEmail
-)
+# Proxy models removed as requested
 from ..forms import EmailForm, EmailComposeForm
 from ..utils import format_file_size
 from .base import BaseModelAdmin
 
 logger = logging.getLogger(__name__)
+
+
+class HasAttachmentFilter(admin.SimpleListFilter):
+    """Filter emails by whether they have attachments."""
+    
+    title = _('Has Attachments')
+    parameter_name = 'has_attachments'
+    
+    def lookups(self, request, model_admin):
+        return (
+            ('yes', _('Yes')),
+            ('no', _('No')),
+        )
+    
+    def queryset(self, request, queryset):
+        if self.value() == 'yes':
+            return queryset.filter(attachments__isnull=False).distinct()
+        elif self.value() == 'no':
+            return queryset.filter(attachments__isnull=True)
+        return queryset
 
 
 class BaseEmailAdmin(BaseModelAdmin):
@@ -44,7 +60,7 @@ class BaseEmailAdmin(BaseModelAdmin):
     list_filter = [
         'mailbox', 'is_seen', 'is_flagged', 'is_answered', 'is_deleted',
         'is_in_trash', 'date', 'mailbox__server', 'send_status', 'priority',
-        'is_outgoing', 'smtp_server'
+        'is_outgoing', 'smtp_server', HasAttachmentFilter
     ]
     search_fields = [
         'subject', 'from_address', 'message_id', 'plain_body',
@@ -164,6 +180,7 @@ class EmailAdmin(BaseEmailAdmin):
     """Admin interface for Email model with sage_imap integration."""
     
     form = EmailForm
+    autocomplete_fields = ['mailbox', 'smtp_server', 'template', 'original_mailbox']
     
     actions = [
         'mark_as_read_sage_imap', 'mark_as_unread_sage_imap', 
@@ -502,76 +519,4 @@ class EmailAdmin(BaseEmailAdmin):
             return redirect('admin:sage_mailbox_email_changelist')
 
 
-# Specialized email admin classes using proxy models
-@admin.register(InboxEmail)
-class InboxEmailAdmin(BaseEmailAdmin):
-    """Admin interface for inbox emails."""
-    
-    def get_queryset(self, request):
-        """Filter to show only inbox emails."""
-        qs = super().get_queryset(request)
-        return qs.filter(
-            mailbox__name__icontains='inbox',
-            is_deleted=False,
-            is_in_trash=False
-        )
-
-
-@admin.register(SentEmail)
-class SentEmailAdmin(BaseEmailAdmin):
-    """Admin interface for sent emails."""
-    
-    def get_queryset(self, request):
-        """Filter to show only sent emails."""
-        qs = super().get_queryset(request)
-        return qs.filter(is_outgoing=True)
-
-
-@admin.register(DraftEmail)
-class DraftEmailAdmin(BaseEmailAdmin):
-    """Admin interface for draft emails."""
-    
-    def get_queryset(self, request):
-        """Filter to show only draft emails."""
-        qs = super().get_queryset(request)
-        return qs.filter(is_draft=True)
-
-
-@admin.register(TrashEmail)
-class TrashEmailAdmin(BaseEmailAdmin):
-    """Admin interface for trash emails."""
-    
-    def get_queryset(self, request):
-        """Filter to show only trash emails."""
-        qs = super().get_queryset(request)
-        return qs.filter(is_in_trash=True)
-
-
-@admin.register(ImportantEmail)
-class ImportantEmailAdmin(BaseEmailAdmin):
-    """Admin interface for important emails."""
-    
-    def get_queryset(self, request):
-        """Filter to show only important emails."""
-        qs = super().get_queryset(request)
-        return qs.filter(is_flagged=True)
-
-
-@admin.register(UnreadEmail)
-class UnreadEmailAdmin(BaseEmailAdmin):
-    """Admin interface for unread emails."""
-    
-    def get_queryset(self, request):
-        """Filter to show only unread emails."""
-        qs = super().get_queryset(request)
-        return qs.filter(is_seen=False)
-
-
-@admin.register(AttachmentEmail)
-class AttachmentEmailAdmin(BaseEmailAdmin):
-    """Admin interface for emails with attachments."""
-    
-    def get_queryset(self, request):
-        """Filter to show only emails with attachments."""
-        qs = super().get_queryset(request)
-        return qs.filter(attachments__isnull=False).distinct() 
+# Proxy admin classes removed as requested - use filters instead 

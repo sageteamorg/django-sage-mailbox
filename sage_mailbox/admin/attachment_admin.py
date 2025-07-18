@@ -28,6 +28,7 @@ class AttachmentAdmin(BaseModelAdmin):
     list_filter = ['content_type', 'created_at', 'email__mailbox']
     search_fields = ['filename', 'email__subject', 'content_type']
     readonly_fields = ['created_at', 'updated_at', 'size', 'checksum']
+    autocomplete_fields = ['email']
     
     fieldsets = (
         (_('Basic Information'), {

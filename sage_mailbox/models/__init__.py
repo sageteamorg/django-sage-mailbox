@@ -12,12 +12,7 @@ from .mailbox import Mailbox
 from .email import Email
 from .attachment import Attachment
 from .flag import EmailFlag
-from .proxy_models import (
-    InboxEmail, SentEmail, DraftEmail, TrashEmail, SpamEmail,
-    ImportantEmail, UnreadEmail, FlaggedEmail, AttachmentEmail,
-    RecentEmail, LargeEmail, InboxMailbox, SentMailbox,
-    DraftMailbox, TrashMailbox, SpamMailbox, CustomFolderMailbox
-)
+# Proxy models removed as requested
 
 __all__ = [
     'TimestampMixin',
@@ -28,21 +23,4 @@ __all__ = [
     'Email',
     'Attachment',
     'EmailFlag',
-    'InboxEmail',
-    'SentEmail',
-    'DraftEmail',
-    'TrashEmail',
-    'SpamEmail',
-    'ImportantEmail',
-    'UnreadEmail',
-    'FlaggedEmail',
-    'AttachmentEmail',
-    'RecentEmail',
-    'LargeEmail',
-    'InboxMailbox',
-    'SentMailbox',
-    'DraftMailbox',
-    'TrashMailbox',
-    'SpamMailbox',
-    'CustomFolderMailbox',
 ] 
